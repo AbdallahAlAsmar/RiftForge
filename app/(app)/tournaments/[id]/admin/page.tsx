@@ -18,7 +18,7 @@ export default async function TournamentAdminPage({
   const { tournament } = await requireTournamentOwner(id);
   const admin = createAdminClient();
 
-  const [{ data: teams }, { data: queueEntries }, { data: soloParticipants }, { data: matches }, { data: results }] =
+  const [{ data: teams }, { data: queueEntries }, { data: participants }, { data: matches }, { data: results }] =
     await Promise.all([
       admin.from("teams").select("id, name, average_tsr, source").eq("tournament_id", id),
       admin
@@ -29,8 +29,7 @@ export default async function TournamentAdminPage({
       admin
         .from("tournament_participants")
         .select("id, user_id, team_id, users(display_name, preferred_roles, tsr)")
-        .eq("tournament_id", id)
-        .is("team_id", null),
+        .eq("tournament_id", id),
       admin.from("matches").select("id, status").eq("tournament_id", id),
       admin
         .from("match_results")
@@ -70,9 +69,9 @@ export default async function TournamentAdminPage({
         <Metric icon={UsersRound} label="Teams" value={teams?.length ?? 0} />
         <Metric
           icon={Bot}
-          label="Queued"
-          value={(queueEntries?.filter((entry) => entry.status === "queued").length ?? 0) + (soloParticipants?.length ?? 0)}
-        />
+            label="Queued"
+            value={(queueEntries?.filter((entry) => entry.status === "queued").length ?? 0) + ((participants ?? []).filter((p) => !p.team_id).length ?? 0)}
+          />
         <Metric icon={GitBranch} label="Matches" value={matches?.length ?? 0} />
         <Metric icon={Radio} label="Pending results" value={results?.length ?? 0} />
       </div>
@@ -124,7 +123,7 @@ export default async function TournamentAdminPage({
             <CardTitle>Solo/duo queue</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {queueEntries?.length || soloParticipants?.length ? (
+            {queueEntries?.length || (participants?.filter((p: any) => !p.team_id).length ?? 0) ? (
               <>
                 {queueEntries
                   ?.filter((entry) => entry.status === "queued")
@@ -139,12 +138,14 @@ export default async function TournamentAdminPage({
                       <Badge>{entry.status}</Badge>
                     </div>
                   ))}
-                {soloParticipants?.length ? (
+                {participants?.filter((p: any) => !p.team_id).length ? (
                   <>
                     <p className="pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Joined without a team yet
                     </p>
-                    {soloParticipants.map((participant) => {
+                    {participants
+                      .filter((p: any) => !p.team_id)
+                      .map((participant) => {
                       const profile = (participant as unknown as {
                         users?: { display_name?: string | null; preferred_roles?: string[]; tsr?: number };
                       }).users;
