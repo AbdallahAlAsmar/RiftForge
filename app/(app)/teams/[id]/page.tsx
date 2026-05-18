@@ -21,7 +21,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
     user ? supabase.from("friends").select("*").or(`user_id.eq.${user.id},friend_id.eq.${user.id}`) : Promise.resolve({ data: [] })
   ]);
 
-  let friends = [];
+  let friends: any[] = [];
   if (user && friendsData) {
     const relatedUserIds = Array.from(new Set(
       friendsData.flatMap((f: any) => [f.user_id, f.friend_id])
