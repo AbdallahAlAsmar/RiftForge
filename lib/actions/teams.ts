@@ -101,6 +101,29 @@ export async function inviteUserToTeam(teamId: string, invitedUserId: string) {
     return { ok: false, message: "Only the captain can invite members." };
   }
 
+  const { data: existingMember } = await supabase
+    .from("team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", invitedUserId)
+    .maybeSingle();
+
+  if (existingMember) {
+    return { ok: false, message: "That player is already on the team." };
+  }
+
+  const { data: pendingInvite } = await supabase
+    .from("invites")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("invited_user_id", invitedUserId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (pendingInvite) {
+    return { ok: false, message: "An invite for this player is already pending." };
+  }
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -229,7 +252,20 @@ export async function acceptTeamInvite(inviteId: string) {
   });
   if (joinError) return { ok: false, message: joinError.message };
 
-  await supabase.from("invites").update({ status: "accepted" }).eq("id", inviteId);
+  await supabase
+    .from("invites")
+    .update({ status: "accepted" })
+    .eq("id", inviteId)
+    .eq("status", "pending");
+
+  await supabase
+    .from("invites")
+    .update({ status: "expired" })
+    .eq("team_id", invite.team_id)
+    .eq("invited_user_id", user.id)
+    .eq("status", "pending")
+    .neq("id", inviteId);
+
   revalidatePath("/teams");
   revalidatePath("/profile");
   return { ok: true, message: "Invite accepted." };
@@ -243,8 +279,20 @@ export async function declineTeamInvite(inviteId: string) {
   if (!invite) return { ok: false, message: "Invite not found." };
   if (invite.invited_user_id !== user.id) return { ok: false, message: "Unauthorized." };
 
-  const { error } = await supabase.from("invites").update({ status: "declined" }).eq("id", inviteId);
+  const { error } = await supabase
+    .from("invites")
+    .update({ status: "declined" })
+    .eq("id", inviteId)
+    .eq("status", "pending");
   if (error) return { ok: false, message: error.message };
+
+  await supabase
+    .from("invites")
+    .update({ status: "expired" })
+    .eq("team_id", invite.team_id)
+    .eq("invited_user_id", user.id)
+    .eq("status", "pending")
+    .neq("id", inviteId);
 
   revalidatePath("/teams");
   revalidatePath("/profile");

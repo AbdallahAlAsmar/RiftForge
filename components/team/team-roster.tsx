@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Crown, ShieldCheck, UserMinus, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Button } from "@/components/ui/button";
 import { promoteTeamMember, removeTeamMember } from "@/lib/actions/teams";
 import { cn } from "@/lib/utils/cn";
 
@@ -23,6 +23,54 @@ type TeamMember = {
 
 const initialState = { ok: true, message: "" };
 
+type PendingAction = {
+  memberId: string;
+  memberName: string;
+  memberAction: "promote" | "remove";
+};
+
+function TeamActionModal({
+  action,
+  onClose
+}: {
+  action: PendingAction;
+  onClose: () => void;
+}) {
+  const isPromote = action.memberAction === "promote";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-border/70 bg-card p-5 shadow-2xl shadow-black/40">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            {isPromote ? <ShieldCheck className="h-3.5 w-3.5" /> : <UserMinus className="h-3.5 w-3.5" />}
+            Captain action
+          </div>
+          <h3 className="text-lg font-semibold">{isPromote ? "Transfer captaincy" : "Remove player"}</h3>
+          <p className="text-sm text-muted-foreground">
+            {isPromote
+              ? `Promote ${action.memberName} so they can invite and manage members.`
+              : `Kick ${action.memberName} from the roster. They will lose team access immediately.`}
+          </p>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={`${action.memberAction}-${action.memberId}`}
+            variant={isPromote ? "outline" : "destructive"}
+          >
+            {isPromote ? "Promote" : "Kick player"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CaptainActionForm({
   teamId,
   memberId,
@@ -38,32 +86,39 @@ function CaptainActionForm({
 }) {
   const action = memberAction === "promote" ? promoteTeamMember : removeTeamMember;
   const [state, formAction] = useActionState(action, initialState);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (state.ok && state.message) {
+      setIsDialogOpen(false);
+    }
+  }, [state.ok, state.message]);
 
   return (
-    <form action={formAction}>
-      <input type="hidden" name="teamId" value={teamId} />
-      <input type="hidden" name="memberId" value={memberId} />
-      <SubmitButton
+    <>
+      <form id={`${memberAction}-${memberId}`} action={formAction}>
+        <input type="hidden" name="teamId" value={teamId} />
+        <input type="hidden" name="memberId" value={memberId} />
+      </form>
+      <Button
         size="sm"
         variant={tone}
-        onClick={(event) => {
-          const prompt =
-            memberAction === "promote"
-              ? `Transfer captaincy to ${memberName}?`
-              : `Remove ${memberName} from the team?`;
-
-          if (!window.confirm(prompt)) {
-            event.preventDefault();
-          }
-        }}
+        type="button"
+        onClick={() => setIsDialogOpen(true)}
       >
         {memberAction === "promote" ? <ShieldCheck className="h-4 w-4" /> : <UserMinus className="h-4 w-4" />}
         {memberAction === "promote" ? "Promote" : "Kick"}
-      </SubmitButton>
+      </Button>
+      {isDialogOpen ? (
+        <TeamActionModal
+          action={{ memberId, memberName, memberAction }}
+          onClose={() => setIsDialogOpen(false)}
+        />
+      ) : null}
       {state.message ? (
         <p className={cn("mt-2 text-xs", state.ok ? "text-primary" : "text-destructive")}>{state.message}</p>
       ) : null}
-    </form>
+    </>
   );
 }
 
@@ -72,7 +127,7 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
     <Card className="interactive-surface">
       <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <CardTitle>Roster</CardTitle>
+          <CardTitle>Team members</CardTitle>
           <CardDescription>
             Hover a teammate to hand off captaincy or remove them from the squad.
           </CardDescription>
