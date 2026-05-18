@@ -50,6 +50,7 @@ export default async function TournamentDetailsPage({
     issues: checkTeamEligibility(team, tournament.min_rank, tournament.max_rank)
   }));
   const hasEligibleTeam = teamChecks.some((check) => check.issues.length === 0);
+  const canJoinWithTeam = userTeams.length > 0;
 
   async function joinAction() {
     "use server";
@@ -148,7 +149,7 @@ export default async function TournamentDetailsPage({
             <CardTitle>Join tournament</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {user ? (
+            {user && canJoinWithTeam ? (
               <div className="grid gap-3">
                 <p className="text-sm font-medium">Join with your team</p>
                 {teamChecks.length ? (
@@ -223,9 +224,6 @@ export default async function TournamentDetailsPage({
                 ) : null}
               </div>
             ) : null}
-            <form action={joinAction}>
-              <Button className="w-full">Join as player</Button>
-            </form>
             <QueueForm tournamentId={id} />
           </CardContent>
           </Card>
