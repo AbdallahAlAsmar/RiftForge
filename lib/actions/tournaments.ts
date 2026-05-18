@@ -178,7 +178,7 @@ export async function joinTournamentWithTeam(tournamentId: string, teamId: strin
   const admin = createAdminClient();
 
   const [{ data: tournament }, { data: team }] = await Promise.all([
-    admin.from("tournaments").select("id, min_rank, max_rank").eq("id", tournamentId).single(),
+    admin.from("tournaments").select("id, min_rank, max_rank, team_size").eq("id", tournamentId).single(),
     admin
       .from("teams")
       .select(
