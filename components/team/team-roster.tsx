@@ -1,0 +1,141 @@
+"use client";
+
+import { useActionState } from "react";
+import { Crown, ShieldCheck, UserMinus, UserRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { promoteTeamMember, removeTeamMember } from "@/lib/actions/teams";
+import { cn } from "@/lib/utils/cn";
+
+type TeamMember = {
+  id: string;
+  role: string | null;
+  is_captain: boolean;
+  users?: {
+    id?: string;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    rank?: string | null;
+    tsr?: number | null;
+  } | null;
+};
+
+const initialState = { ok: true, message: "" };
+
+function CaptainActionForm({
+  teamId,
+  memberId,
+  memberName,
+  memberAction,
+  tone
+}: {
+  teamId: string;
+  memberId: string;
+  memberName: string;
+  memberAction: "promote" | "remove";
+  tone: "outline" | "destructive";
+}) {
+  const action = memberAction === "promote" ? promoteTeamMember : removeTeamMember;
+  const [state, formAction] = useActionState(action, initialState);
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="teamId" value={teamId} />
+      <input type="hidden" name="memberId" value={memberId} />
+      <SubmitButton
+        size="sm"
+        variant={tone}
+        onClick={(event) => {
+          const prompt =
+            memberAction === "promote"
+              ? `Transfer captaincy to ${memberName}?`
+              : `Remove ${memberName} from the team?`;
+
+          if (!window.confirm(prompt)) {
+            event.preventDefault();
+          }
+        }}
+      >
+        {memberAction === "promote" ? <ShieldCheck className="h-4 w-4" /> : <UserMinus className="h-4 w-4" />}
+        {memberAction === "promote" ? "Promote" : "Kick"}
+      </SubmitButton>
+      {state.message ? (
+        <p className={cn("mt-2 text-xs", state.ok ? "text-primary" : "text-destructive")}>{state.message}</p>
+      ) : null}
+    </form>
+  );
+}
+
+export function TeamRoster({ teamId, members, canManage }: { teamId: string; members: TeamMember[]; canManage: boolean }) {
+  return (
+    <Card className="interactive-surface">
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle>Roster</CardTitle>
+          <CardDescription>
+            Hover a teammate to hand off captaincy or remove them from the squad.
+          </CardDescription>
+        </div>
+        {canManage ? <Badge className="border-primary/30 text-primary">Captain controls active</Badge> : null}
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {members.map((member) => {
+          const profile = member.users;
+          const displayName = profile?.display_name ?? "Player";
+          const memberUserId = profile?.id;
+
+          return (
+            <div
+              key={member.id}
+              className={cn(
+                "group rounded-lg border border-border/70 bg-card/70 p-3 transition-all duration-200 hover:border-primary/30 hover:bg-card",
+                canManage && !member.is_captain ? "md:hover:-translate-y-0.5" : ""
+              )}
+            >
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-md bg-secondary">
+                    <UserRound className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{displayName}</p>
+                      {member.is_captain ? (
+                        <Badge className="border-primary/30 text-primary">
+                          <Crown className="mr-1 h-3 w-3" /> Captain
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {member.role ?? "role TBD"} - {profile?.rank ?? "unranked"} - {profile?.tsr ?? 300} TSR
+                    </p>
+                  </div>
+                </div>
+
+                {canManage && !member.is_captain && memberUserId ? (
+                  <div className="flex flex-col gap-2 opacity-100 transition md:pointer-events-none md:flex-row md:items-center md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100">
+                    <CaptainActionForm
+                      teamId={teamId}
+                      memberId={memberUserId}
+                      memberName={displayName}
+                      memberAction="promote"
+                      tone="outline"
+                    />
+                    <CaptainActionForm
+                      teamId={teamId}
+                      memberId={memberUserId}
+                      memberName={displayName}
+                      memberAction="remove"
+                      tone="destructive"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}

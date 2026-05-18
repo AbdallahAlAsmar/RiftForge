@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Crown, Sparkles, UserRound, UsersRound } from "lucide-react";
+import { Sparkles, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reveal";
+import { LiveBackdrop, Reveal } from "@/components/motion/reveal";
 import { InviteFriendSection } from "@/components/team/invite-friend";
+import { TeamRoster } from "@/components/team/team-roster";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth/session";
 
@@ -82,42 +83,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
       </Reveal>
 
       <Reveal delay={0.06}>
-        <Card className="interactive-surface">
-        <CardHeader>
-          <CardTitle>Roster</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {members?.map((member) => {
-            const profile = (member as unknown as {
-              users?: { display_name?: string; rank?: string; tsr?: number };
-            }).users;
-            return (
-              <Reveal key={member.id} distance={10}>
-                <HoverLift>
-                  <div className="interactive-surface flex items-center justify-between rounded-md border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
-                        <UserRound className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{profile?.display_name ?? "Player"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.role ?? "role TBD"} - {profile?.rank ?? "unranked"} - {profile?.tsr ?? 300} TSR
-                        </p>
-                      </div>
-                    </div>
-                    {member.is_captain ? (
-                      <Badge className="text-primary">
-                        <Crown className="mr-1 h-3 w-3" /> Captain
-                      </Badge>
-                    ) : null}
-                  </div>
-                </HoverLift>
-              </Reveal>
-            );
-          })}
-        </CardContent>
-        </Card>
+        <TeamRoster teamId={team.id} members={(members ?? []) as any} canManage={isCaptain} />
       </Reveal>
 
       {isCaptain ? (

@@ -118,6 +118,102 @@ export async function inviteUserToTeam(teamId: string, invitedUserId: string) {
   return { ok: true, message: "Invite sent." };
 }
 
+async function loadCaptainManagedTeam(teamId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data: team, error } = await supabase
+    .from("teams")
+    .select("id, captain_id, tournament_id")
+    .eq("id", teamId)
+    .single();
+
+  if (error || !team) {
+    return { ok: false as const, message: "Team not found." };
+  }
+
+  if (team.captain_id !== user.id) {
+    return { ok: false as const, message: "Only the captain can manage the roster." };
+  }
+
+  return { ok: true as const, user, team };
+}
+
+export async function promoteTeamMember(_: unknown, formData: FormData) {
+  const teamId = formString(formData, "teamId");
+  const memberId = formString(formData, "memberId");
+
+  if (!teamId || !memberId) {
+    return { ok: false, message: "Missing team or member details." };
+  }
+
+  const access = await loadCaptainManagedTeam(teamId);
+  if (!access.ok) return access;
+
+  const admin = createAdminClient();
+  const { data: member, error: memberError } = await admin
+    .from("team_members")
+    .select("user_id, is_captain")
+    .eq("team_id", teamId)
+    .eq("user_id", memberId)
+    .maybeSingle();
+
+  if (memberError || !member) {
+    return { ok: false, message: "That player is not on this team." };
+  }
+
+  if (member.is_captain) {
+    return { ok: false, message: "That player is already the captain." };
+  }
+
+  const { error: transferError } = await admin.rpc("transfer_team_captaincy", {
+    p_team_id: teamId,
+    p_new_captain_id: memberId
+  });
+
+  if (transferError) {
+    return { ok: false, message: transferError.message };
+  }
+
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/teams");
+  if (access.team.tournament_id) {
+    revalidatePath(`/tournaments/${access.team.tournament_id}`);
+  }
+
+  return { ok: true, message: "Captaincy transferred." };
+}
+
+export async function removeTeamMember(_: unknown, formData: FormData) {
+  const teamId = formString(formData, "teamId");
+  const memberId = formString(formData, "memberId");
+
+  if (!teamId || !memberId) {
+    return { ok: false, message: "Missing team or member details." };
+  }
+
+  const access = await loadCaptainManagedTeam(teamId);
+  if (!access.ok) return access;
+
+  const admin = createAdminClient();
+  const { error: removeError } = await admin.rpc("remove_team_member", {
+    p_team_id: teamId,
+    p_member_user_id: memberId
+  });
+
+  if (removeError) {
+    return { ok: false, message: removeError.message };
+  }
+
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath("/teams");
+  if (access.team.tournament_id) {
+    revalidatePath(`/tournaments/${access.team.tournament_id}`);
+  }
+
+  return { ok: true, message: "Player removed from the team." };
+}
+
 export async function acceptTeamInvite(inviteId: string) {
   const user = await requireUser();
   const supabase = await createClient();
