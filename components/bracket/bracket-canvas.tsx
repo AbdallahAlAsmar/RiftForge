@@ -170,7 +170,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       <div
         ref={wrapperRef}
         className={cn(
-          "relative min-h-[72vh] overflow-hidden rounded-[28px] border border-white/10 bg-[#05070d] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
+          "relative min-h-[76vh] overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
           isPanning ? "cursor-grabbing" : "cursor-grab"
         )}
         onPointerDown={handlePointerDown}
@@ -178,10 +178,11 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(56,189,248,0.12),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.02)_0%,transparent_40%,rgba(255,255,255,0.01)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] opacity-25" />
-        <div className="absolute inset-y-0 left-0 hidden w-40 border-r border-cyan-400/20 lg:block">
-          <div className="absolute left-6 top-6 flex flex-col gap-24 text-cyan-300/90">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,0.28),transparent_18%),radial-gradient(circle_at_88%_20%,rgba(109,40,217,0.22),transparent_24%),radial-gradient(circle_at_72%_76%,rgba(14,165,233,0.16),transparent_18%),linear-gradient(90deg,#0d6aa2_0%,#071d49_35%,#25124f_72%,#3f2d6e_100%)]" />
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.02)_50%,rgba(255,255,255,0.02)_75%,transparent_75%,transparent)] [background-size:320px_320px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,0.46)_0%,rgba(3,7,18,0.1)_18%,transparent_28%,transparent_72%,rgba(3,7,18,0.08)_88%,rgba(3,7,18,0.36)_100%)]" />
+        <div className="absolute inset-y-0 left-0 hidden w-40 border-r border-cyan-400/30 lg:block">
+          <div className="absolute left-6 top-8 flex flex-col gap-28 text-cyan-300/95">
             <span className="origin-left -rotate-90 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.6em]">
               Playoffs
             </span>
@@ -192,6 +193,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
               Playoffs
             </span>
           </div>
+          <div className="absolute inset-y-0 right-0 w-1 bg-cyan-300/70 shadow-[0_0_20px_rgba(34,211,238,0.7)]" />
         </div>
 
         <motion.div
