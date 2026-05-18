@@ -104,9 +104,9 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                       </div>
                     </div>
                     {isFriend ? (
-                      <Badge variant="outline">Friends</Badge>
+                      <Badge className="bg-transparent border-primary/30 text-primary">Friends</Badge>
                     ) : hasSentReq ? (
-                      <Badge variant="secondary">Request Sent</Badge>
+                      <Badge>Request Sent</Badge>
                     ) : (
                       <Button
                         size="sm"
