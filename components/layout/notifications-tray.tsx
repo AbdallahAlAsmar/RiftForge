@@ -8,6 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { acceptFriendRequest, declineFriendRequest } from "@/lib/actions/friends";
 import { acceptTeamInvite, declineTeamInvite } from "@/lib/actions/teams";
 
+type FriendNotification = {
+  id: string;
+  users?: {
+    display_name?: string | null;
+  } | null;
+};
+
+type TeamInviteNotification = {
+  id: string;
+  teams?: {
+    id?: string;
+    name?: string | null;
+  } | null;
+};
+
 export function NotificationsTray({ notifications }: { notifications: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -15,8 +30,8 @@ export function NotificationsTray({ notifications }: { notifications: any }) {
   const trayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const visibleFriends = (notifications.friends ?? []).filter((item: any) => !dismissedIds.has(item.id));
-  const visibleInvites = (notifications.invites ?? []).filter((item: any) => !dismissedIds.has(item.id));
+  const visibleFriends = (notifications.friends ?? []).filter((item: FriendNotification) => !dismissedIds.has(item.id));
+  const visibleInvites = (notifications.invites ?? []).filter((item: TeamInviteNotification) => !dismissedIds.has(item.id));
   const total = visibleFriends.length + visibleInvites.length;
 
   const dedupedInvites = useMemo(() => {
@@ -77,7 +92,7 @@ export function NotificationsTray({ notifications }: { notifications: any }) {
               </div>
             ) : (
               <>
-                {visibleFriends.map((req: any) => (
+                {visibleFriends.map((req: FriendNotification) => (
                   <div key={req.id} className="flex items-center justify-between rounded-md p-2 hover:bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-primary shrink-0">
@@ -98,7 +113,7 @@ export function NotificationsTray({ notifications }: { notifications: any }) {
                     </div>
                   </div>
                 ))}
-                {dedupedInvites.map((invite: any) => (
+                {dedupedInvites.map((invite: TeamInviteNotification) => (
                   <div key={invite.id} className="flex items-center justify-between rounded-md p-2 hover:bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-primary shrink-0">
