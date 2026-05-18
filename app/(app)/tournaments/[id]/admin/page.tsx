@@ -18,7 +18,7 @@ export default async function TournamentAdminPage({
   const { tournament } = await requireTournamentOwner(id);
   const admin = createAdminClient();
 
-  const [{ data: teams }, { data: queueEntries }, { data: matches }, { data: results }] =
+  const [{ data: teams }, { data: queueEntries }, { data: soloParticipants }, { data: matches }, { data: results }] =
     await Promise.all([
       admin.from("teams").select("id, name, average_tsr, source").eq("tournament_id", id),
       admin
@@ -26,6 +26,11 @@ export default async function TournamentAdminPage({
         .select("id, mode, tsr, status, users(display_name, preferred_roles)")
         .eq("tournament_id", id)
         .order("created_at", { ascending: true }),
+      admin
+        .from("tournament_participants")
+        .select("id, user_id, team_id, users(display_name, preferred_roles, tsr)")
+        .eq("tournament_id", id)
+        .is("team_id", null),
       admin.from("matches").select("id, status").eq("tournament_id", id),
       admin
         .from("match_results")
@@ -63,7 +68,11 @@ export default async function TournamentAdminPage({
 
       <div className="grid gap-4 md:grid-cols-4">
         <Metric icon={UsersRound} label="Teams" value={teams?.length ?? 0} />
-        <Metric icon={Bot} label="Queued" value={queueEntries?.filter((entry) => entry.status === "queued").length ?? 0} />
+        <Metric
+          icon={Bot}
+          label="Queued"
+          value={(queueEntries?.filter((entry) => entry.status === "queued").length ?? 0) + (soloParticipants?.length ?? 0)}
+        />
         <Metric icon={GitBranch} label="Matches" value={matches?.length ?? 0} />
         <Metric icon={Radio} label="Pending results" value={results?.length ?? 0} />
       </div>
@@ -115,18 +124,46 @@ export default async function TournamentAdminPage({
             <CardTitle>Solo/duo queue</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {queueEntries?.length ? (
-              queueEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between rounded-md border p-3">
-                  <div>
-                    <p className="font-medium">
-                      {(entry as unknown as { users?: { display_name?: string } }).users?.display_name ?? "Player"}
+            {queueEntries?.length || soloParticipants?.length ? (
+              <>
+                {queueEntries
+                  ?.filter((entry) => entry.status === "queued")
+                  .map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between rounded-md border p-3">
+                      <div>
+                        <p className="font-medium">
+                          {(entry as unknown as { users?: { display_name?: string } }).users?.display_name ?? "Player"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{entry.mode} - {entry.tsr} TSR</p>
+                      </div>
+                      <Badge>{entry.status}</Badge>
+                    </div>
+                  ))}
+                {soloParticipants?.length ? (
+                  <>
+                    <p className="pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Joined without a team yet
                     </p>
-                    <p className="text-sm text-muted-foreground">{entry.mode} - {entry.tsr} TSR</p>
-                  </div>
-                  <Badge>{entry.status}</Badge>
-                </div>
-              ))
+                    {soloParticipants.map((participant) => {
+                      const profile = (participant as unknown as {
+                        users?: { display_name?: string | null; preferred_roles?: string[]; tsr?: number };
+                      }).users;
+
+                      return (
+                        <div key={participant.id} className="flex items-center justify-between rounded-md border p-3">
+                          <div>
+                            <p className="font-medium">{profile?.display_name ?? "Player"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              solo - {profile?.tsr ?? 300} TSR
+                            </p>
+                          </div>
+                          <Badge>Joined</Badge>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : null}
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">No queue entries yet.</p>
             )}

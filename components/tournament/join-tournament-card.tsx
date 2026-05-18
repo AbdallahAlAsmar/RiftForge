@@ -52,7 +52,7 @@ export function JoinTournamentCard({
       </CardHeader>
       <CardContent className="grid gap-3">
         {joined ? (
-          <div className="rounded-md border border-primary/25 bg-primary/5 p-3">
+          <div className="rounded-md border border-border/60 bg-secondary/25 p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-primary">
               <CheckCircle2 className="h-4 w-4" /> Joined
             </div>

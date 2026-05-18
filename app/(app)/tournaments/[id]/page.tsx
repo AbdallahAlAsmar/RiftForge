@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateTeamForm } from "@/components/team/create-team-form";
 import { HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reveal";
-import { JoinTournamentCard } from "@/components/tournament/join-tournament-card";
+import { QueueForm } from "@/components/tournament/queue-form";
 import { joinTournamentWithTeam } from "@/lib/actions/tournaments";
 import {
   checkTeamEligibility,
@@ -39,15 +39,6 @@ export default async function TournamentDetailsPage({
       supabase.from("matches").select("id").eq("tournament_id", id).limit(1),
       userTeamsPromise
     ]);
-
-  const { data: participant } = user
-    ? await supabase
-        .from("tournament_participants")
-        .select("team_id, teams(id, name)")
-        .eq("tournament_id", id)
-        .eq("user_id", user.id)
-        .maybeSingle()
-    : { data: null };
 
   if (!tournament) {
     return <div className="text-muted-foreground">Tournament not found.</div>;
@@ -228,20 +219,7 @@ export default async function TournamentDetailsPage({
                 ) : null}
               </div>
             ) : null}
-            {user ? (
-              <JoinTournamentCard
-                tournamentId={id}
-                isJoined={Boolean(participant)}
-                teamName={(participant as { teams?: { name?: string | null } } | null)?.teams?.name ?? null}
-                initialMessage={
-                  participant
-                    ? (participant as { teams?: { name?: string | null } } | null)?.teams?.name
-                      ? `You're already in the tournament and placed in ${(participant as { teams?: { name?: string | null } } | null)?.teams?.name}.`
-                      : "You're already in the tournament and waiting for a random team assignment."
-                    : ""
-                }
-              />
-            ) : null}
+            <QueueForm tournamentId={id} />
           </CardContent>
           </Card>
         </Reveal>
