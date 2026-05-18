@@ -9,10 +9,11 @@ import { Select } from "@/components/ui/select";
 
 const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 
-export function QueueForm({ tournamentId }: { tournamentId: string }) {
+export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string; teamSize?: number }) {
   const [mode, setMode] = useState("solo");
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const allowDuo = teamSize > 1;
 
   return (
     <form
@@ -28,10 +29,10 @@ export function QueueForm({ tournamentId }: { tournamentId: string }) {
         <Label htmlFor="mode">Queue mode</Label>
         <Select id="mode" name="mode" value={mode} onChange={(event) => setMode(event.target.value)}>
           <option value="solo">Solo</option>
-          <option value="duo">Duo</option>
+          {allowDuo ? <option value="duo">Duo</option> : null}
         </Select>
       </div>
-      {mode === "duo" ? (
+      {mode === "duo" && allowDuo ? (
         <div className="grid gap-2">
           <Label htmlFor="partnerUserId">Duo partner user ID</Label>
           <Input id="partnerUserId" name="partnerUserId" placeholder="Paste teammate profile UUID" />
@@ -49,7 +50,13 @@ export function QueueForm({ tournamentId }: { tournamentId: string }) {
         </div>
       </div>
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      <Button disabled={isPending}>{isPending ? "Joining..." : "Join solo/duo queue"}</Button>
+      <Button disabled={isPending}>
+        {isPending
+          ? "Joining..."
+          : teamSize === 5
+            ? "Join solo/duo queue"
+            : `Join ${teamSize}v${teamSize} queue`}
+      </Button>
     </form>
   );
 }

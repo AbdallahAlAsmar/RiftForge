@@ -9,7 +9,7 @@ import { checkTeamEligibility, formatTeamEligibilityIssue } from "@/lib/domain/t
 import { createClient } from "@/lib/supabase/server";
 import { formString, requireTournamentOwner, slugify, tournamentSchema } from "./common";
 
-async function assignRandomAvailableTeam(tournamentId: string, userId: string) {
+async function assignRandomAvailableTeam(tournamentId: string, userId: string, teamSize: number) {
   const admin = createAdminClient();
 
   const { data: teams, error } = await admin
@@ -23,7 +23,7 @@ async function assignRandomAvailableTeam(tournamentId: string, userId: string) {
 
   const availableTeams = (teams ?? []).filter((team) => {
     const members = (team.team_members ?? []) as Array<{ user_id: string }>;
-    return members.length < 5 && !members.some((member) => member.user_id === userId);
+    return members.length < teamSize && !members.some((member) => member.user_id === userId);
   });
 
   if (!availableTeams.length) {
@@ -60,6 +60,7 @@ export async function createTournament(_: unknown, formData: FormData) {
     name: formString(formData, "name"),
     description: formString(formData, "description"),
     maxTeams: formString(formData, "maxTeams"),
+    teamSize: formString(formData, "teamSize"),
     format: formString(formData, "format"),
     minRank: formString(formData, "minRank") || null,
     maxRank: formString(formData, "maxRank") || null,
@@ -82,6 +83,7 @@ export async function createTournament(_: unknown, formData: FormData) {
       slug,
       description: parsed.data.description,
       max_teams: parsed.data.maxTeams,
+      team_size: parsed.data.teamSize,
       format: parsed.data.format,
       min_rank: parsed.data.minRank || null,
       max_rank: parsed.data.maxRank || null,
@@ -119,6 +121,14 @@ export async function joinTournament(tournamentId: string) {
   if (!riotCheck.ok) return riotCheck;
 
   const admin = createAdminClient();
+  const { data: tournament, error: tournamentError } = await admin
+    .from("tournaments")
+    .select("team_size")
+    .eq("id", tournamentId)
+    .single();
+
+  if (tournamentError) return { ok: false, message: tournamentError.message };
+
   const { data: existingParticipant, error: participantLookupError } = await admin
     .from("tournament_participants")
     .select("team_id")
@@ -138,7 +148,7 @@ export async function joinTournament(tournamentId: string) {
 
   const assignedTeam = existingParticipant?.team_id
     ? null
-    : await assignRandomAvailableTeam(tournamentId, user.id);
+    : await assignRandomAvailableTeam(tournamentId, user.id, tournament?.team_size ?? 5);
 
   revalidatePath(`/tournaments/${tournamentId}`);
   revalidatePath("/profile");
@@ -187,7 +197,7 @@ export async function joinTournamentWithTeam(tournamentId: string, teamId: strin
     return { ok: false, message: "This team is already registered in another tournament." };
   }
 
-  const issues = checkTeamEligibility(team, tournament.min_rank, tournament.max_rank);
+  const issues = checkTeamEligibility(team, tournament.min_rank, tournament.max_rank, tournament.team_size ?? 5);
   if (issues.length) {
     return { ok: false, message: formatTeamEligibilityIssue(issues[0]) };
   }

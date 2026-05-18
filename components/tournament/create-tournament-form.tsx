@@ -44,6 +44,14 @@ export function CreateTournamentForm() {
               </Select>
             </div>
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="teamSize">Team size</Label>
+            <Select id="teamSize" name="teamSize" defaultValue="5">
+              <option value="1">1v1</option>
+              <option value="2">2v2</option>
+              <option value="5">5v5</option>
+            </Select>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="minRank">Min rank</Label>

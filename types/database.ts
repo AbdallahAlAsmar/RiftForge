@@ -40,6 +40,7 @@ export type TournamentRow = {
   status: "draft" | "published" | "check_in" | "live" | "completed" | "cancelled";
   format: "single_elimination" | "double_elimination";
   max_teams: number;
+  team_size: number;
   min_rank: string | null;
   max_rank: string | null;
   starts_at: string | null;

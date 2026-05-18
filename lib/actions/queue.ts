@@ -14,6 +14,14 @@ export async function joinQueue(tournamentId: string, formData: FormData) {
   if (!riotCheck.ok) return riotCheck;
 
   const supabase = await createClient();
+  const { data: tournament, error: tournamentError } = await supabase
+    .from("tournaments")
+    .select("team_size")
+    .eq("id", tournamentId)
+    .single();
+
+  if (tournamentError) return { ok: false, message: tournamentError.message };
+
   const { data: profile } = await supabase
     .from("users")
     .select("tsr, preferred_roles")
@@ -21,6 +29,10 @@ export async function joinQueue(tournamentId: string, formData: FormData) {
     .single();
 
   const mode = formString(formData, "mode") === "duo" ? "duo" : "solo";
+  if (tournament?.team_size === 1 && mode === "duo") {
+    return { ok: false, message: "This tournament only supports solo teams." };
+  }
+
   const partnerUserId = formString(formData, "partnerUserId") || null;
   const preferredRoles = formStringArray(formData, "preferredRoles");
 
@@ -43,6 +55,15 @@ export async function joinQueue(tournamentId: string, formData: FormData) {
 export async function generateBalancedTeams(tournamentId: string) {
   await requireTournamentOwner(tournamentId);
   const admin = createAdminClient();
+
+  const { data: tournament, error: tournamentError } = await admin
+    .from("tournaments")
+    .select("team_size")
+    .eq("id", tournamentId)
+    .single();
+
+  if (tournamentError) return { ok: false, message: tournamentError.message };
+  const teamSize = tournament?.team_size ?? 5;
 
   const { data: entries, error } = await admin
     .from("queue_entries")
@@ -87,17 +108,25 @@ export async function generateBalancedTeams(tournamentId: string) {
     };
   });
 
-  const generatedTeams = buildBalancedTeams(balanceEntries);
-  if (!generatedTeams.length) return { ok: false, message: "Need at least 5 queued players." };
+  const generatedTeams = buildBalancedTeams(balanceEntries, teamSize);
+  if (!generatedTeams.length) return { ok: false, message: `Need at least ${teamSize} queued players.` };
 
-  for (const generatedTeam of generatedTeams) {
+  const themedTeamNames = ["Blue Buff", "Red Buff", "Gromp", "Wolves", "Pink Ward", "Trinket"];
+
+  function getTeamName(index: number) {
+    const baseName = themedTeamNames[index % themedTeamNames.length];
+    const cycle = Math.floor(index / themedTeamNames.length);
+    return cycle > 0 ? `${baseName} ${cycle + 1}` : baseName;
+  }
+
+  for (const [index, generatedTeam] of generatedTeams.entries()) {
     const captain = generatedTeam.players[0];
     const { data: team, error: teamError } = await admin
       .from("teams")
       .insert({
         tournament_id: tournamentId,
         captain_id: captain.userId,
-        name: generatedTeam.name,
+        name: getTeamName(index),
         average_tsr: generatedTeam.averageTsr,
         source: "solo_duo_generated"
       })

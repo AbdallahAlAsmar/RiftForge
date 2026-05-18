@@ -45,6 +45,9 @@ export const tournamentSchema = z.object({
   name: z.string().min(3).max(80),
   description: z.string().max(800).optional(),
   maxTeams: z.coerce.number().int().min(2).max(128),
+  teamSize: z.coerce.number().int().refine((value) => [1, 2, 5].includes(value), {
+    message: "Team size must be 1, 2, or 5."
+  }),
   format: z.enum(["single_elimination", "double_elimination"]),
   minRank: z.string().optional(),
   maxRank: z.string().optional(),

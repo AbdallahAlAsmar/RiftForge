@@ -4,6 +4,7 @@ export type TeamEligibilityIssue =
   | {
       type: "incomplete_roster";
       memberCount: number;
+      expectedCount: number;
     }
   | {
       type: "rank_missing";
@@ -62,13 +63,14 @@ function firstProfile(
 export function checkTeamEligibility(
   team: TeamWithMembers,
   minRank?: string | null,
-  maxRank?: string | null
+  maxRank?: string | null,
+  expectedCount = 5
 ): TeamEligibilityIssue[] {
   const issues: TeamEligibilityIssue[] = [];
   const members = team.team_members ?? [];
 
-  if (members.length !== 5) {
-    issues.push({ type: "incomplete_roster", memberCount: members.length });
+  if (members.length !== expectedCount) {
+    issues.push({ type: "incomplete_roster", memberCount: members.length, expectedCount });
   }
 
   const minRankValue = rankValue(minRank);
@@ -118,7 +120,7 @@ export function checkTeamEligibility(
 export function formatTeamEligibilityIssue(issue: TeamEligibilityIssue) {
   switch (issue.type) {
     case "incomplete_roster":
-      return `Team has ${issue.memberCount}/5 players.`;
+      return `Team has ${issue.memberCount}/${issue.expectedCount} players.`;
     case "rank_missing":
       return `${issue.memberName} (Player ${issue.memberIndex}) has no rank set.`;
     case "rank_too_low":

@@ -47,7 +47,7 @@ export default async function TournamentDetailsPage({
   const userTeams = (userTeamsData ?? []) as TeamWithMembers[];
   const teamChecks = userTeams.map((team) => ({
     team,
-    issues: checkTeamEligibility(team, tournament.min_rank, tournament.max_rank)
+    issues: checkTeamEligibility(team, tournament.min_rank, tournament.max_rank, tournament.team_size ?? 5)
   }));
   const hasEligibleTeam = teamChecks.some((check) => check.issues.length === 0);
   const canJoinWithTeam = userTeams.length > 0;
@@ -219,7 +219,7 @@ export default async function TournamentDetailsPage({
                 ) : null}
               </div>
             ) : null}
-            <QueueForm tournamentId={id} />
+            <QueueForm tournamentId={id} teamSize={tournament.team_size ?? 5} />
           </CardContent>
           </Card>
         </Reveal>
