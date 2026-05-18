@@ -23,15 +23,22 @@ type TeamInviteNotification = {
   } | null;
 };
 
-export function NotificationsTray({ notifications }: { notifications: any }) {
+type NotificationsTrayProps = {
+  notifications: {
+    friends: FriendNotification[];
+    invites: TeamInviteNotification[];
+  };
+};
+
+export function NotificationsTray({ notifications }: NotificationsTrayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const trayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const visibleFriends = (notifications.friends ?? []).filter((item: FriendNotification) => !dismissedIds.has(item.id));
-  const visibleInvites = (notifications.invites ?? []).filter((item: TeamInviteNotification) => !dismissedIds.has(item.id));
+  const visibleFriends = notifications.friends.filter((item) => !dismissedIds.has(item.id));
+  const visibleInvites = notifications.invites.filter((item) => !dismissedIds.has(item.id));
   const total = visibleFriends.length + visibleInvites.length;
 
   const dedupedInvites = useMemo(() => {
