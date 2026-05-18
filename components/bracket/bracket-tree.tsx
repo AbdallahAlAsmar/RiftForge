@@ -33,7 +33,7 @@ export function BracketTree({
 
   if (!matches.length) {
     return (
-      <Card>
+      <Card className="border-white/10 bg-black/30">
         <CardContent className="p-8 text-center text-muted-foreground">
           No bracket yet. Tournament admins can generate it from the admin dashboard.
         </CardContent>
@@ -42,11 +42,16 @@ export function BracketTree({
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="grid min-w-[860px] gap-4" style={{ gridTemplateColumns: `repeat(${rounds.length}, minmax(260px, 1fr))` }}>
+    <div className="w-max pb-6">
+      <div className="mb-6 flex items-center gap-3 text-cyan-300">
+        <div className="h-px w-10 bg-cyan-300/60" />
+        <p className="text-xs font-black uppercase tracking-[0.45em]">Playoff bracket</p>
+        <div className="h-px w-10 bg-cyan-300/60" />
+      </div>
+      <div className="grid min-w-[1080px] gap-8" style={{ gridTemplateColumns: `repeat(${rounds.length}, minmax(300px, 1fr))` }}>
         {rounds.map((round) => (
           <div key={round} className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
               Round {round}
             </h2>
             {matches
@@ -88,29 +93,29 @@ function MatchCard({
   }
 
   return (
-    <Card className="bg-card/90">
+    <Card className="border-white/10 bg-black/45 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm">
       <CardHeader className="flex-row items-center justify-between py-4">
-        <CardTitle className="text-sm">Match {match.position}</CardTitle>
-        <Badge>{match.status}</Badge>
+        <CardTitle className="text-sm uppercase tracking-[0.25em] text-cyan-100">Match {match.position}</CardTitle>
+        <Badge className="border-white/10 bg-white/5 text-[10px] uppercase tracking-[0.25em]">{match.status}</Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         <TeamRow team={teamA} isWinner={winner?.id === teamA?.id} />
         <TeamRow team={teamB} isWinner={winner?.id === teamB?.id} />
         {winner ? (
-          <div className="flex items-center gap-2 rounded-md bg-primary/10 p-2 text-sm text-primary">
+          <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 p-2 text-sm text-primary">
             <Trophy className="h-4 w-4" />
             {winner.name} advanced
           </div>
         ) : match.status === "ready" && teamA && teamB ? (
           <form action={submitAction} className="grid gap-2">
-            <select name="winnerTeamId" className="h-9 rounded-md border bg-background px-2 text-sm">
+            <select name="winnerTeamId" className="h-10 rounded-md border border-white/10 bg-black/40 px-2 text-sm text-foreground outline-none">
               <option value={teamA.id}>{teamA.name}</option>
               <option value={teamB.id}>{teamB.name}</option>
             </select>
             <input
               name="notes"
               placeholder="Score or notes"
-              className="h-9 rounded-md border bg-background px-2 text-sm"
+              className="h-10 rounded-md border border-white/10 bg-black/40 px-2 text-sm outline-none"
             />
             <Button size="sm" variant="outline">
               Submit result
@@ -130,7 +135,7 @@ function MatchCard({
 
 function TeamRow({ team, isWinner }: { team?: Team; isWinner: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-md border bg-background p-3">
+    <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/35 p-3">
       <span className={team ? "font-medium" : "text-muted-foreground"}>{team?.name ?? "TBD"}</span>
       {isWinner ? <Check className="h-4 w-4 text-primary" /> : null}
     </div>
