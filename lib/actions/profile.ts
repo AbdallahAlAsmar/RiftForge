@@ -15,6 +15,23 @@ const profileSchema = z.object({
   preferredRoles: z.array(z.string()).max(5)
 });
 
+const regionAliases: Record<string, string> = {
+  "EUROPE WEST": "EUW",
+  "EUW": "EUW",
+  "NORTH AMERICA": "NA",
+  "NA": "NA",
+  "MIDDLE EAST": "ME",
+  "ME": "ME",
+  "EUROPE NORDIC & EAST": "EUNE",
+  "EUNE": "EUNE",
+  "OCEANIA": "OCE"
+};
+
+function normalizeRegion(value: string) {
+  const trimmed = value.trim().toUpperCase();
+  return regionAliases[trimmed] ?? trimmed.slice(0, 8);
+}
+
 export async function updateProfile(_: unknown, formData: FormData) {
   const user = await requireUser();
   const parsed = profileSchema.safeParse({
@@ -33,7 +50,7 @@ export async function updateProfile(_: unknown, formData: FormData) {
     .from("users")
     .update({
       display_name: parsed.data.displayName,
-      region: parsed.data.region.toUpperCase(),
+      region: normalizeRegion(parsed.data.region),
       rank: parsed.data.rank,
       tsr: tsrForRank(parsed.data.rank),
       preferred_roles: parsed.data.preferredRoles

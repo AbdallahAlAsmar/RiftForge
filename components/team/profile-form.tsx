@@ -17,11 +17,31 @@ type Profile = {
 
 const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 const ranks = ["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "challenger"];
-const regions = ["Europe West", "North America", "Middle East", "Europe Nordic & East", "Oceania"];
+const regions = [
+  { value: "EUW", label: "Europe West" },
+  { value: "NA", label: "North America" },
+  { value: "ME", label: "Middle East" },
+  { value: "EUNE", label: "Europe Nordic & East" },
+  { value: "OCE", label: "Oceania" }
+];
 const initialState = { ok: true, message: "" };
+
+function normalizeRegion(value: string) {
+  const upper = value.trim().toUpperCase();
+  const aliases: Record<string, string> = {
+    "EUROPE WEST": "EUW",
+    "NORTH AMERICA": "NA",
+    "MIDDLE EAST": "ME",
+    "EUROPE NORDIC & EAST": "EUNE",
+    "OCEANIA": "OCE"
+  };
+
+  return aliases[upper] ?? upper;
+}
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const [state, action] = useActionState(updateProfile, initialState);
+  const regionValue = normalizeRegion(profile.region || "EUW");
 
   return (
     <form action={action} className="grid gap-4">
@@ -32,10 +52,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="region">Region</Label>
-          <Select id="region" name="region" defaultValue={profile.region || "Europe West"}>
-            {regions.map((r) => (
-              <option key={r} value={r}>
-                {r}
+          <Select id="region" name="region" defaultValue={regionValue}>
+            {regions.map((region) => (
+              <option key={region.value} value={region.value}>
+                {region.label}
               </option>
             ))}
           </Select>

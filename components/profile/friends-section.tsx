@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UserRound, Check, X, UserPlus, Search, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ type FriendData = {
 };
 
 export function FriendsSection({ currentUserId, friends }: { currentUserId: string; friends: FriendData[] }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -27,6 +29,27 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
   const pendingRequests = friends.filter(f => f.status === "pending" && f.friend_id === currentUserId);
   const sentRequests = friends.filter(f => f.status === "pending" && f.user_id === currentUserId);
   const acceptedFriends = friends.filter(f => f.status === "accepted");
+
+  useEffect(() => {
+    setOptimisticSent((current) => {
+      const next = new Set<string>();
+
+      for (const userId of current) {
+        const stillPending = friends.some(
+          (friendship) =>
+            friendship.status === "pending" &&
+            friendship.user_id === currentUserId &&
+            friendship.profile?.id === userId
+        );
+
+        if (stillPending) {
+          next.add(userId);
+        }
+      }
+
+      return next;
+    });
+  }, [currentUserId, friends]);
 
   useEffect(() => {
     if (!searchQuery || searchQuery.length < 3) {
@@ -47,14 +70,19 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
 
   async function handleAction(action: () => Promise<{ok: boolean, message?: string}>, loadingId: string) {
     setActionLoading(loadingId);
-    await action();
+    const result = await action();
+    if (result.ok) {
+      router.refresh();
+    }
     setActionLoading(null);
+    return result;
   }
 
   async function handleSendRequest(userId: string) {
-    // Optimistic update
-    setOptimisticSent(prev => new Set(prev).add(userId));
-    await handleAction(() => sendFriendRequest(userId), userId);
+    const result = await handleAction(() => sendFriendRequest(userId), userId);
+    if (result.ok) {
+      setOptimisticSent(prev => new Set(prev).add(userId));
+    }
   }
 
   async function handleRemoveFriend(friendId: string, friendshipId: string) {
