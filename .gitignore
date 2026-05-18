@@ -6,3 +6,20 @@ node_modules
 dist
 coverage
 *.tsbuildinfo
+
+# IDEs and AI agent workspace metadata
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.vscode/
+.windsurf/
+

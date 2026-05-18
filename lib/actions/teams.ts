@@ -10,7 +10,7 @@ import { formString } from "./common";
 
 const teamSchema = z.object({
   tournamentId: z.string().uuid().optional().or(z.literal("")),
-  name: z.string().min(2).max(60)
+  name: z.string().min(3, "Team name must be at least 3 characters.").max(16, "Team name cannot exceed 16 characters.")
 });
 
 export async function createTeam(_: unknown, formData: FormData) {
@@ -27,6 +27,19 @@ export async function createTeam(_: unknown, formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  // Check if team name already exists
+  const { data: existingTeam } = await supabase
+    .from("teams")
+    .select("id")
+    .ilike("name", parsed.data.name)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingTeam) {
+    return { ok: false, message: "A team with this name already exists." };
+  }
+
   let logoUrl: string | null = null;
   const logo = formData.get("logo");
 
@@ -103,4 +116,40 @@ export async function inviteUserToTeam(teamId: string, invitedUserId: string) {
 
   revalidatePath(`/teams/${teamId}`);
   return { ok: true, message: "Invite sent." };
+}
+
+export async function acceptTeamInvite(inviteId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data: invite } = await supabase.from("invites").select("*").eq("id", inviteId).single();
+  if (!invite) return { ok: false, message: "Invite not found." };
+  if (invite.invited_user_id !== user.id) return { ok: false, message: "Unauthorized." };
+
+  const { error: joinError } = await supabase.from("team_members").insert({
+    team_id: invite.team_id,
+    user_id: user.id
+  });
+  if (joinError) return { ok: false, message: joinError.message };
+
+  await supabase.from("invites").update({ status: "accepted" }).eq("id", inviteId);
+  revalidatePath("/teams");
+  revalidatePath("/profile");
+  return { ok: true, message: "Invite accepted." };
+}
+
+export async function declineTeamInvite(inviteId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data: invite } = await supabase.from("invites").select("*").eq("id", inviteId).single();
+  if (!invite) return { ok: false, message: "Invite not found." };
+  if (invite.invited_user_id !== user.id) return { ok: false, message: "Unauthorized." };
+
+  const { error } = await supabase.from("invites").update({ status: "declined" }).eq("id", inviteId);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/teams");
+  revalidatePath("/profile");
+  return { ok: true, message: "Invite declined." };
 }

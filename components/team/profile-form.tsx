@@ -17,6 +17,7 @@ type Profile = {
 
 const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 const ranks = ["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "challenger"];
+const regions = ["Europe West", "North America", "Middle East", "Europe Nordic & East", "Oceania"];
 const initialState = { ok: true, message: "" };
 
 export function ProfileForm({ profile }: { profile: Profile }) {
@@ -31,7 +32,13 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="region">Region</Label>
-          <Input id="region" name="region" defaultValue={profile.region} required />
+          <Select id="region" name="region" defaultValue={profile.region || "Europe West"}>
+            {regions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="rank">Rank</Label>

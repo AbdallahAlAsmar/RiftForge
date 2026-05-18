@@ -65,7 +65,7 @@ export default async function ProfilePage() {
         <Reveal className="scanline-overlay relative overflow-hidden rounded-xl border">
           <LiveBackdrop />
           <Card className="relative border-0 bg-transparent shadow-none">
-            <CardHeader className="items-center text-center">
+            <CardHeader className="items-start text-left">
               <div className="glass-panel flex h-20 w-20 items-center justify-center rounded-md">
                 {profile.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sparkles, UserRound } from "lucide-react";
 import { AuthButtons } from "@/components/auth/auth-buttons";
+import { NotificationsTray } from "@/components/layout/notifications-tray";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/profile";
@@ -12,6 +13,16 @@ export async function SiteHeader() {
   const {
     data: { user }
   } = await supabase.auth.getUser();
+
+  let notifications: { friends: any[]; invites: any[] } = { friends: [], invites: [] };
+  if (user) {
+    const [{ data: friends }, { data: invites }] = await Promise.all([
+      supabase.from("friends").select("id, created_at, users!user_id(id, display_name, avatar_url)").eq("friend_id", user.id).eq("status", "pending"),
+      supabase.from("invites").select("id, created_at, teams(id, name, logo_url)").eq("invited_user_id", user.id).eq("status", "pending")
+    ]);
+    notifications.friends = friends || [];
+    notifications.invites = invites || [];
+  }
 
   return (
     <header className="sticky top-4 z-40 px-4 sm:px-6 lg:px-8">
@@ -55,6 +66,7 @@ export async function SiteHeader() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              <NotificationsTray notifications={notifications} />
               <Button asChild variant="ghost" size="icon" aria-label="Profile">
                 <Link href="/profile">
                   <UserRound className="h-4 w-4" />

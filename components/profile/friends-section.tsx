@@ -57,6 +57,15 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
     await handleAction(() => sendFriendRequest(userId), userId);
   }
 
+  async function handleRemoveFriend(friendId: string, friendshipId: string) {
+    await handleAction(() => removeFriend(friendshipId), friendshipId);
+    setOptimisticSent(prev => {
+      const next = new Set(prev);
+      next.delete(friendId);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-6">
       <Card className="interactive-surface">
@@ -197,7 +206,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                   variant="ghost"
                   className="text-muted-foreground hover:text-destructive"
                   disabled={actionLoading === friend.id}
-                  onClick={() => handleAction(() => removeFriend(friend.id), friend.id)}
+                  onClick={() => handleRemoveFriend(friend.profile?.id || "", friend.id)}
                 >
                   {actionLoading === friend.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
                 </Button>
