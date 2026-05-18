@@ -9,6 +9,51 @@ import { checkTeamEligibility, formatTeamEligibilityIssue } from "@/lib/domain/t
 import { createClient } from "@/lib/supabase/server";
 import { formString, requireTournamentOwner, slugify, tournamentSchema } from "./common";
 
+async function assignRandomAvailableTeam(tournamentId: string, userId: string) {
+  const admin = createAdminClient();
+
+  const { data: teams, error } = await admin
+    .from("teams")
+    .select("id, name, team_members(user_id)")
+    .eq("tournament_id", tournamentId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const availableTeams = (teams ?? []).filter((team) => {
+    const members = (team.team_members ?? []) as Array<{ user_id: string }>;
+    return members.length < 5 && !members.some((member) => member.user_id === userId);
+  });
+
+  if (!availableTeams.length) {
+    return null;
+  }
+
+  const selectedTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+
+  const { error: teamMemberError } = await admin.from("team_members").upsert({
+    team_id: selectedTeam.id,
+    user_id: userId
+  });
+
+  if (teamMemberError) {
+    throw new Error(teamMemberError.message);
+  }
+
+  const { error: participantError } = await admin
+    .from("tournament_participants")
+    .update({ team_id: selectedTeam.id })
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId);
+
+  if (participantError) {
+    throw new Error(participantError.message);
+  }
+
+  return selectedTeam as { id: string; name: string };
+}
+
 export async function createTournament(_: unknown, formData: FormData) {
   const user = await requireUser();
   const parsed = tournamentSchema.safeParse({
@@ -73,8 +118,17 @@ export async function joinTournament(tournamentId: string) {
   const riotCheck = await requireLinkedRiotAccount(user.id);
   if (!riotCheck.ok) return riotCheck;
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("tournament_participants").upsert({
+  const admin = createAdminClient();
+  const { data: existingParticipant, error: participantLookupError } = await admin
+    .from("tournament_participants")
+    .select("team_id")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (participantLookupError) return { ok: false, message: participantLookupError.message };
+
+  const { error } = await admin.from("tournament_participants").upsert({
     tournament_id: tournamentId,
     user_id: user.id,
     participant_type: "player"
@@ -82,8 +136,28 @@ export async function joinTournament(tournamentId: string) {
 
   if (error) return { ok: false, message: error.message };
 
+  const assignedTeam = existingParticipant?.team_id
+    ? null
+    : await assignRandomAvailableTeam(tournamentId, user.id);
+
   revalidatePath(`/tournaments/${tournamentId}`);
-  return { ok: true, message: "Joined tournament." };
+  revalidatePath("/profile");
+
+  if (assignedTeam) {
+    return {
+      ok: true,
+      message: `You're in the tournament and have been placed in ${assignedTeam.name}.`
+    };
+  }
+
+  if (existingParticipant?.team_id) {
+    return { ok: true, message: "You're already in the tournament and assigned to a team." };
+  }
+
+  return {
+    ok: true,
+    message: "You're in the tournament. We'll place you into a random team when one is available."
+  };
 }
 
 export async function joinTournamentWithTeam(tournamentId: string, teamId: string) {
