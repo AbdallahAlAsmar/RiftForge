@@ -11,7 +11,7 @@ export async function getRiotAccountForUser(userId: string) {
   return data;
 }
 
-export async function requireLinkedRiotAccount(userId: string) {
+export async function requireLinkedRiotAccount(userId: string): Promise<{ ok: true; riot: any } | { ok: false; message: string }> {
   const riot = await getRiotAccountForUser(userId);
 
   if (!riot) {
