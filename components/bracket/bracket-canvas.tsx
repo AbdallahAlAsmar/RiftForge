@@ -12,6 +12,9 @@ const MIN_SCALE = 0.55;
 const MAX_SCALE = 1.8;
 const SCALE_STEP = 0.12;
 const TOP_PADDING = 24;
+const FIT_PADDING = 48;
+const VIEWPORT_PADDING = 24;
+const MIN_WRAPPER_HEIGHT = 360;
 
 export function BracketCanvas({ children }: { children: ReactNode }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -19,11 +22,56 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
   const reduceMotion = useReducedMotion();
   const [scale, setScale] = useState(0.82);
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
+  const [wrapperHeight, setWrapperHeight] = useState<number | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; offset: Point } | null>(null);
   const activePointerId = useRef<number | null>(null);
+  const manualControlRef = useRef(false);
+  const scaleRef = useRef(scale);
 
   const zoomLabel = useMemo(() => `${Math.round(scale * 100)}%`, [scale]);
+
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const available = window.innerHeight - rect.top - VIEWPORT_PADDING;
+      setWrapperHeight(Math.max(MIN_WRAPPER_HEIGHT, Math.floor(available)));
+    };
+
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
+
+  function getFitScale() {
+    const wrapper = wrapperRef.current;
+    const board = boardRef.current;
+
+    if (!wrapper || !board) {
+      return scaleRef.current;
+    }
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const boardWidth = board.offsetWidth || 1;
+    const boardHeight = board.offsetHeight || 1;
+    const availableWidth = Math.max(1, wrapperRect.width - FIT_PADDING * 2);
+    const availableHeight = Math.max(1, wrapperRect.height - FIT_PADDING * 2);
+    const fitScale = Math.min(availableWidth / boardWidth, availableHeight / boardHeight);
+
+    return Math.min(MAX_SCALE, Math.max(MIN_SCALE, fitScale));
+  }
+
+  function fitToView() {
+    const nextScale = getFitScale();
+    setScale(nextScale);
+    setOffset(getCenterOffset(nextScale));
+  }
 
   function clampOffset(nextOffset: Point, nextScale: number) {
     const wrapper = wrapperRef.current;
@@ -87,6 +135,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
 
     const rect = wrapper.getBoundingClientRect();
     const safeScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
+    manualControlRef.current = true;
 
     if (!anchor) {
       setOffset(getCenterOffset(safeScale));
@@ -112,16 +161,26 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
-    if (!wrapper) return;
+    const board = boardRef.current;
+    if (!wrapper || !board) return;
 
-    const updateInitialPosition = () => setOffset(getCenterOffset(scale));
-    updateInitialPosition();
+    const updatePosition = () => {
+      if (manualControlRef.current) {
+        setOffset((current) => clampOffset(current, scaleRef.current));
+        return;
+      }
 
-    const resizeObserver = new ResizeObserver(updateInitialPosition);
+      fitToView();
+    };
+
+    updatePosition();
+
+    const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(wrapper);
+    resizeObserver.observe(board);
 
     return () => resizeObserver.disconnect();
-  }, [scale]);
+  }, [wrapperHeight]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -146,6 +205,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     event.preventDefault();
     setIsPanning(true);
     activePointerId.current = event.pointerId;
+    manualControlRef.current = true;
     panStartRef.current = {
       pointerX: event.clientX,
       pointerY: event.clientY,
@@ -216,8 +276,8 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
   }, [isPanning]);
 
   function resetView() {
-    setScale(0.82);
-    setOffset(getCenterOffset(0.82));
+    manualControlRef.current = false;
+    fitToView();
   }
 
   return (
@@ -248,9 +308,10 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       <div
         ref={wrapperRef}
         className={cn(
-          "relative min-h-[76vh] touch-none select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
+          "relative min-h-[360px] touch-none select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
           isPanning ? "cursor-grabbing" : "cursor-grab"
         )}
+        style={wrapperHeight ? { height: wrapperHeight } : undefined}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
