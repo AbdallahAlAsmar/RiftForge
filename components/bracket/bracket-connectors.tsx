@@ -11,6 +11,7 @@ type Match = {
 
 export default function BracketConnectors({ matches }: { matches: Match[] }) {
   const [paths, setPaths] = useState<string[]>([]);
+  const [endpoints, setEndpoints] = useState<{ x: number; y: number; color?: string }[]>([]);
   const [bbox, setBbox] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   useEffect(() => {
     const board = document.querySelector(".bracket-board") as HTMLElement | null;
@@ -27,6 +28,7 @@ export default function BracketConnectors({ matches }: { matches: Match[] }) {
         return board?.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
       }
 
+      const newEndpoints: { x: number; y: number; color?: string }[] = [];
       for (const match of matches) {
         if (!match.next_match_id) continue;
         const src = getEl(match.id);
@@ -46,9 +48,12 @@ export default function BracketConnectors({ matches }: { matches: Match[] }) {
 
         const path = `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`;
         newPaths.push(path);
+        newEndpoints.push({ x: start.x, y: start.y, color: "#00ffe1" });
+        newEndpoints.push({ x: end.x, y: end.y, color: "#7be3ff" });
       }
 
       setPaths(newPaths);
+      setEndpoints(newEndpoints);
       setBbox({ width: Math.max(100, boardRect.width), height: Math.max(100, boardRect.height) });
       ticking = false;
     };
@@ -115,9 +120,12 @@ export default function BracketConnectors({ matches }: { matches: Match[] }) {
       </defs>
       {paths.map((d, i) => (
         <g key={i} style={{ mixBlendMode: "screen" }}>
-          <path d={d} stroke="#18c6e6" strokeWidth={2.5} fill="none" strokeOpacity={0.9} filter="url(#glow)" />
-          <path d={d} stroke="#08303a" strokeWidth={8} fill="none" strokeOpacity={0.06} />
+          <path d={d} stroke="#18c6e6" strokeWidth={2.5} fill="none" strokeOpacity={0.95} filter="url(#glow)" />
+          <path d={d} stroke="#031419" strokeWidth={8} fill="none" strokeOpacity={0.08} />
         </g>
+      ))}
+      {endpoints.map((pt, i) => (
+        <circle key={`ep-${i}`} cx={pt.x} cy={pt.y} r={4} fill={pt.color ?? "#00ffe1"} opacity={0.95} />
       ))}
     </svg>
   );
