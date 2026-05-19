@@ -50,6 +50,12 @@ export default function BracketConnectors({
     const computeConnectors = () => {
       const newPaths: Array<{ d: string; color: string }> = [];
       const boardRect = board.getBoundingClientRect();
+      const rawWidth = board.offsetWidth || 1;
+      const rawHeight = board.offsetHeight || 1;
+      const scaleX = boardRect.width / rawWidth;
+      const scaleY = boardRect.height / rawHeight;
+      const safeScaleX = Number.isFinite(scaleX) && scaleX > 0 ? scaleX : 1;
+      const safeScaleY = Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1;
 
       // Calculate position of a match element
       const getMatchPosition = (matchId: string) => {
@@ -58,10 +64,10 @@ export default function BracketConnectors({
 
         const rect = element.getBoundingClientRect();
         return {
-          x: rect.left - boardRect.left,
-          y: rect.top - boardRect.top,
-          width: rect.width,
-          height: rect.height
+          x: (rect.left - boardRect.left) / safeScaleX,
+          y: (rect.top - boardRect.top) / safeScaleY,
+          width: rect.width / safeScaleX,
+          height: rect.height / safeScaleY
         };
       };
 
@@ -94,8 +100,8 @@ export default function BracketConnectors({
 
       // Set SVG dimensions to match board
       setSvgDimensions({
-        width: boardRect.width,
-        height: boardRect.height
+        width: rawWidth,
+        height: rawHeight
       });
     };
 

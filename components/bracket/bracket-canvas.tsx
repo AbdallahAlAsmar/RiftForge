@@ -106,6 +106,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       return;
     }
 
+    event.preventDefault();
     setIsPanning(true);
     panStartRef.current = {
       pointerX: event.clientX,
@@ -174,7 +175,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       <div
         ref={wrapperRef}
         className={cn(
-          "relative min-h-[76vh] overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
+          "relative min-h-[76vh] touch-none select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
           isPanning ? "cursor-grabbing" : "cursor-grab"
         )}
         onPointerDown={handlePointerDown}
