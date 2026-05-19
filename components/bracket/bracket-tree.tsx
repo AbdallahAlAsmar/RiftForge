@@ -33,6 +33,11 @@ export function BracketTree({
 }) {
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
+  const bracketSize = nextPowerOfTwo(Math.max(maxTeams, 2));
+  const slotHeight = 150;
+  const treeHeight = bracketSize * slotHeight;
+  const columnWidth = 320;
+  const columnGap = 56;
 
   if (!matches.length) {
     return (
@@ -51,30 +56,42 @@ export function BracketTree({
         <p className="text-xs font-black uppercase tracking-[0.5em]">Playoff bracket</p>
         <div className="h-px w-10 bg-cyan-300/60" />
       </div>
-      <div className="grid min-w-[1180px] gap-x-14 gap-y-10" style={{ gridTemplateColumns: `repeat(${rounds.length}, minmax(290px, 1fr))` }}>
+      <div
+        className="relative"
+        style={{
+          minWidth: rounds.length * columnWidth + (rounds.length - 1) * columnGap,
+          height: treeHeight
+        }}
+      >
         {rounds.map((round) => (
-          <div key={round} className="relative space-y-4">
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
+          <div
+            key={round}
+            className="absolute top-0"
+            style={{ left: (round - 1) * (columnWidth + columnGap), width: columnWidth, height: treeHeight }}
+          >
+            <h2 className="absolute left-0 top-0 text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
               {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
             </h2>
-            {matches
-              .filter((match) => match.round === round)
-              .sort((a, b) => a.position - b.position)
-              .map((match) => (
-                <div key={match.id} className="relative">
-                  <div className="absolute -right-7 top-1/2 hidden h-px w-7 bg-cyan-300/45 lg:block" />
-                  <div className="absolute -right-7 top-1/2 hidden h-24 w-px -translate-y-1/2 bg-cyan-300/35 lg:block" />
-                  <MatchCard
-                    match={match}
-                    teamA={match.team_a_id ? teamsById.get(match.team_a_id) : undefined}
-                    teamB={match.team_b_id ? teamsById.get(match.team_b_id) : undefined}
-                    winner={match.winner_team_id ? teamsById.get(match.winner_team_id) : undefined}
-                    maxTeams={maxTeams}
-                    canAdmin={canAdmin}
-                    isFinal={round === rounds.length}
-                  />
-                </div>
-              ))}
+            <div className="absolute inset-y-0 left-0 right-0 flex flex-col justify-center" style={{ gap: slotHeight * (2 ** round - 1) }}>
+              {matches
+                .filter((match) => match.round === round)
+                .sort((a, b) => a.position - b.position)
+                .map((match) => (
+                  <div key={match.id} className="relative" style={{ height: slotHeight }}>
+                    <div className="absolute left-full top-1/2 hidden h-px w-7 -translate-y-1/2 bg-cyan-300/45 lg:block" />
+                    <div className="absolute left-full top-1/2 hidden h-24 w-px -translate-y-1/2 bg-cyan-300/35 lg:block" />
+                    <MatchCard
+                      match={match}
+                      teamA={match.team_a_id ? teamsById.get(match.team_a_id) : undefined}
+                      teamB={match.team_b_id ? teamsById.get(match.team_b_id) : undefined}
+                      winner={match.winner_team_id ? teamsById.get(match.winner_team_id) : undefined}
+                      maxTeams={maxTeams}
+                      canAdmin={canAdmin}
+                      isFinal={round === rounds.length}
+                    />
+                  </div>
+                ))}
+            </div>
           </div>
         ))}
       </div>
@@ -105,7 +122,7 @@ function MatchCard({
   }
 
   return (
-    <Card className="relative overflow-hidden border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+    <Card className="relative h-full w-full overflow-hidden border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
       <div className="absolute inset-y-0 right-0 w-2 bg-cyan-400/95 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
       <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-3">
         <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-cyan-100/85">
@@ -198,4 +215,8 @@ function ConfirmButton({ matchId, team }: { matchId: string; team: Team }) {
       </Button>
     </form>
   );
+}
+
+function nextPowerOfTwo(value: number) {
+  return 2 ** Math.ceil(Math.log2(value));
 }
