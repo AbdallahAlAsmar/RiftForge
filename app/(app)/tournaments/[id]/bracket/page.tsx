@@ -13,7 +13,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     supabase.from("tournaments").select("*").eq("id", id).single(),
     supabase
       .from("matches")
-      .select("id, round, position, team_a_id, team_b_id, winner_team_id, status")
+      .select("id, round, position, team_a_id, team_b_id, winner_team_id, status, next_match_id")
       .eq("tournament_id", id)
       .order("round", { ascending: true })
       .order("position", { ascending: true }),

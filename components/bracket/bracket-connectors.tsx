@@ -12,41 +12,81 @@ type Match = {
 export default function BracketConnectors({ matches }: { matches: Match[] }) {
   const [paths, setPaths] = useState<string[]>([]);
   const [bbox, setBbox] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-
   useEffect(() => {
     const board = document.querySelector(".bracket-board") as HTMLElement | null;
     if (!board) return;
 
-    const boardRect = board.getBoundingClientRect();
+    const parent = board.parentElement as HTMLElement | null;
+    let ticking = false;
 
-    const newPaths: string[] = [];
+    const compute = () => {
+      const boardRect = board.getBoundingClientRect();
+      const newPaths: string[] = [];
 
-    function getEl(matchId: string) {
-      return board?.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
-    }
+      function getEl(matchId: string) {
+        return board?.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
+      }
 
-    for (const match of matches) {
-      if (!match.next_match_id) continue;
-      const src = getEl(match.id);
-      const dst = getEl(match.next_match_id);
-      if (!src || !dst) continue;
+      for (const match of matches) {
+        if (!match.next_match_id) continue;
+        const src = getEl(match.id);
+        const dst = getEl(match.next_match_id);
+        if (!src || !dst) continue;
 
-      const s = src.getBoundingClientRect();
-      const d = dst.getBoundingClientRect();
+        const s = src.getBoundingClientRect();
+        const d = dst.getBoundingClientRect();
 
-      const start = { x: s.right - boardRect.left, y: s.top + s.height / 2 - boardRect.top };
-      const end = { x: d.left - boardRect.left, y: d.top + d.height / 2 - boardRect.top };
+        const start = { x: s.right - boardRect.left, y: s.top + s.height / 2 - boardRect.top };
+        const end = { x: d.left - boardRect.left, y: d.top + d.height / 2 - boardRect.top };
 
-      const dx = Math.max(24, Math.abs(end.x - start.x) * 0.45);
-      const c1 = { x: start.x + dx, y: start.y };
-      const c2 = { x: end.x - dx, y: end.y };
+        const dist = Math.abs(end.x - start.x);
+        const dx = Math.max(24, dist * 0.6);
+        const c1 = { x: start.x + dx, y: start.y };
+        const c2 = { x: end.x - dx, y: end.y };
 
-      const path = `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`;
-      newPaths.push(path);
-    }
+        const path = `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`;
+        newPaths.push(path);
+      }
 
-    setPaths(newPaths);
-    setBbox({ width: Math.max(100, boardRect.width), height: Math.max(100, boardRect.height) });
+      setPaths(newPaths);
+      setBbox({ width: Math.max(100, boardRect.width), height: Math.max(100, boardRect.height) });
+      ticking = false;
+    };
+
+    const schedule = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(compute);
+    };
+
+    // Observe style mutations on the motion wrapper (parent) so transforms trigger recompute
+    const mo = new MutationObserver(schedule);
+    if (parent) mo.observe(parent, { attributes: true, attributeFilter: ["style", "transform"] });
+
+    // Resize observer for layout changes
+    const ro = new ResizeObserver(schedule);
+    ro.observe(board);
+    if (parent) ro.observe(parent);
+
+    // Also update during pointer and wheel interactions for snappy feedback
+    const onPointer = () => schedule();
+    const onWheel = () => schedule();
+    window.addEventListener("pointermove", onPointer);
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("pointerup", onPointer);
+    window.addEventListener("wheel", onWheel, { passive: true });
+
+    // initial compute
+    schedule();
+
+    return () => {
+      mo.disconnect();
+      ro.disconnect();
+      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("pointerup", onPointer);
+      window.removeEventListener("wheel", onWheel);
+    };
   }, [matches]);
 
   // Recompute on resize so connectors follow layout changes
