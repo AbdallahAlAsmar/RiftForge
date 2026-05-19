@@ -9,123 +9,205 @@ type Match = {
   next_match_id?: string | null;
 };
 
-export default function BracketConnectors({ matches }: { matches: Match[] }) {
-  const [paths, setPaths] = useState<string[]>([]);
-  const [endpoints, setEndpoints] = useState<{ x: number; y: number; color?: string }[]>([]);
-  const [bbox, setBbox] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+interface BracketConnectorsProps {
+  matches: Match[];
+  rounds: number[];
+  bracketSize: number;
+  matchHeight: number;
+  matchWidth: number;
+  columnGap: number;
+  minVerticalGap: number;
+}
+
+export default function BracketConnectors({
+  matches,
+  rounds,
+  bracketSize,
+  matchHeight,
+  matchWidth,
+  columnGap,
+  minVerticalGap
+}: BracketConnectorsProps) {
+  const [paths, setPaths] = useState<Array<{ d: string; color: string }>>([]);
+  const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
+
+  // Memoize the calculation of vertical gaps per round
+  const verticalGapsByRound = useMemo(() => {
+    const gaps: Record<number, number> = {};
+    for (const round of rounds) {
+      const matchesInRound = bracketSize / Math.pow(2, round);
+      const totalHeight = bracketSize * matchHeight;
+      const availableSpacing = totalHeight - matchesInRound * matchHeight;
+      gaps[round] = Math.max(minVerticalGap, availableSpacing / (matchesInRound - 1));
+    }
+    return gaps;
+  }, [rounds, bracketSize, matchHeight, minVerticalGap]);
+
   useEffect(() => {
     const board = document.querySelector(".bracket-board") as HTMLElement | null;
     if (!board) return;
 
-    const parent = board.parentElement as HTMLElement | null;
-    let ticking = false;
-
-    const compute = () => {
+    const computeConnectors = () => {
+      const newPaths: Array<{ d: string; color: string }> = [];
       const boardRect = board.getBoundingClientRect();
-      const newPaths: string[] = [];
 
-      function getEl(matchId: string) {
-        return board?.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
-      }
+      // Calculate position of a match element
+      const getMatchPosition = (matchId: string) => {
+        const element = board.querySelector(`[data-match-id="${matchId}"]`) as HTMLElement | null;
+        if (!element) return null;
 
-      const newEndpoints: { x: number; y: number; color?: string }[] = [];
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.left - boardRect.left,
+          y: rect.top - boardRect.top,
+          width: rect.width,
+          height: rect.height
+        };
+      };
+
+      // Process each match and its connection to the next match
       for (const match of matches) {
         if (!match.next_match_id) continue;
-        const src = getEl(match.id);
-        const dst = getEl(match.next_match_id);
-        if (!src || !dst) continue;
 
-        const s = src.getBoundingClientRect();
-        const d = dst.getBoundingClientRect();
+        const srcPos = getMatchPosition(match.id);
+        const dstPos = getMatchPosition(match.next_match_id);
 
-        const start = { x: s.right - boardRect.left, y: s.top + s.height / 2 - boardRect.top };
-        const end = { x: d.left - boardRect.left, y: d.top + d.height / 2 - boardRect.top };
+        if (!srcPos || !dstPos) continue;
 
-        const dist = Math.abs(end.x - start.x);
-        const dx = Math.max(24, dist * 0.6);
-        const c1 = { x: start.x + dx, y: start.y };
-        const c2 = { x: end.x - dx, y: end.y };
+        // Calculate connection points
+        const startX = srcPos.x + srcPos.width;
+        const startY = srcPos.y + srcPos.height / 2;
 
-        const path = `M ${start.x},${start.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${end.x},${end.y}`;
-        newPaths.push(path);
-        newEndpoints.push({ x: start.x, y: start.y, color: "#00ffe1" });
-        newEndpoints.push({ x: end.x, y: end.y, color: "#7be3ff" });
+        const endX = dstPos.x;
+        const endY = dstPos.y + dstPos.height / 2;
+
+        // Create smooth bezier curve
+        const horizontalDistance = endX - startX;
+        const controlPointDistance = Math.max(30, horizontalDistance * 0.4);
+
+        const c1X = startX + controlPointDistance;
+        const c1Y = startY;
+        const c2X = endX - controlPointDistance;
+        const c2Y = endY;
+
+        // Create path with proper curve
+        const pathData = `M ${startX} ${startY} C ${c1X} ${c1Y} ${c2X} ${c2Y} ${endX} ${endY}`;
+        newPaths.push({
+          d: pathData,
+          color: "#18c6e6"
+        });
       }
 
       setPaths(newPaths);
-      setEndpoints(newEndpoints);
-      setBbox({ width: Math.max(100, boardRect.width), height: Math.max(100, boardRect.height) });
-      ticking = false;
+
+      // Set SVG dimensions to match board
+      setSvgDimensions({
+        width: boardRect.width,
+        height: boardRect.height
+      });
     };
 
-    const schedule = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(compute);
+    // Initial computation
+    computeConnectors();
+
+    // Set up observers for dynamic updates
+    let animationFrameId: number;
+    const scheduleCompute = () => {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(computeConnectors);
     };
 
-    // Observe style mutations on the motion wrapper (parent) so transforms trigger recompute
-    const mo = new MutationObserver(schedule);
-    if (parent) mo.observe(parent, { attributes: true, attributeFilter: ["style", "transform"] });
+    // Observe mutations
+    const mutationObserver = new MutationObserver(scheduleCompute);
+    mutationObserver.observe(board, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
 
-    // Resize observer for layout changes
-    const ro = new ResizeObserver(schedule);
-    ro.observe(board);
-    if (parent) ro.observe(parent);
+    // Observe resize
+    const resizeObserver = new ResizeObserver(scheduleCompute);
+    resizeObserver.observe(board);
 
-    // Also update during pointer and wheel interactions for snappy feedback
-    const onPointer = () => schedule();
-    const onWheel = () => schedule();
-    window.addEventListener("pointermove", onPointer);
-    window.addEventListener("pointerdown", onPointer);
-    window.addEventListener("pointerup", onPointer);
-    window.addEventListener("wheel", onWheel, { passive: true });
+    // Listen for scroll and pointer events
+    const handleScroll = () => scheduleCompute();
+    const handlePointer = () => scheduleCompute();
 
-    // initial compute
-    schedule();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("pointermove", handlePointer, { passive: true });
+    window.addEventListener("pointerup", handlePointer, { passive: true });
+    window.addEventListener("wheel", handleScroll, { passive: true });
 
     return () => {
-      mo.disconnect();
-      ro.disconnect();
-      window.removeEventListener("pointermove", onPointer);
-      window.removeEventListener("pointerdown", onPointer);
-      window.removeEventListener("pointerup", onPointer);
-      window.removeEventListener("wheel", onWheel);
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("pointermove", handlePointer);
+      window.removeEventListener("pointerup", handlePointer);
+      window.removeEventListener("wheel", handleScroll);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [matches]);
-
-  // Recompute on resize so connectors follow layout changes
-  useEffect(() => {
-    const ro = new ResizeObserver(() => {
-      // trigger effect by updating state with same matches (simple way)
-      setPaths((p) => [...p]);
-    });
-    const board = document.querySelector(".bracket-board") as HTMLElement | null;
-    if (board) ro.observe(board);
-    return () => ro.disconnect();
-  }, []);
+  }, [matches, verticalGapsByRound]);
 
   if (!paths.length) return null;
 
   return (
-    <svg className="pointer-events-none absolute left-0 top-0" width={bbox.width} height={bbox.height} preserveAspectRatio="none">
+    <svg
+      className="pointer-events-none absolute left-0 top-0"
+      width={svgDimensions.width}
+      height={svgDimensions.height}
+      preserveAspectRatio="none"
+      style={{ overflow: "visible" }}
+    >
       <defs>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+        <filter id="bracket-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur" />
           <feMerge>
             <feMergeNode in="coloredBlur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <linearGradient id="connector-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#18c6e6" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.7" />
+        </linearGradient>
       </defs>
-      {paths.map((d, i) => (
-        <g key={i} style={{ mixBlendMode: "screen" }}>
-          <path d={d} stroke="#18c6e6" strokeWidth={2.5} fill="none" strokeOpacity={0.95} filter="url(#glow)" />
-          <path d={d} stroke="#031419" strokeWidth={8} fill="none" strokeOpacity={0.08} />
+
+      {/* Render connector paths */}
+      {paths.map((path, index) => (
+        <g key={`connector-${index}`} style={{ mixBlendMode: "screen" }}>
+          {/* Glow layer */}
+          <path
+            d={path.d}
+            stroke={path.color}
+            strokeWidth={3}
+            fill="none"
+            strokeOpacity={0.6}
+            filter="url(#bracket-glow)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Main line */}
+          <path
+            d={path.d}
+            stroke="url(#connector-gradient)"
+            strokeWidth={2}
+            fill="none"
+            strokeOpacity={0.95}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Shadow layer */}
+          <path
+            d={path.d}
+            stroke="#031419"
+            strokeWidth={6}
+            fill="none"
+            strokeOpacity={0.1}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </g>
-      ))}
-      {endpoints.map((pt, i) => (
-        <circle key={`ep-${i}`} cx={pt.x} cy={pt.y} r={4} fill={pt.color ?? "#00ffe1"} opacity={0.95} />
       ))}
     </svg>
   );

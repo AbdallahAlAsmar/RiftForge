@@ -34,9 +34,13 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     const wrapperRect = wrapper.getBoundingClientRect();
     const boardRect = board.getBoundingClientRect();
 
+    // Calculate proper centering accounting for scale
+    const scaledBoardWidth = boardRect.width * nextScale;
+    const scaledBoardHeight = boardRect.height * nextScale;
+
     return {
-      x: (wrapperRect.width - boardRect.width * nextScale) / 2,
-      y: Math.max(24, (wrapperRect.height - boardRect.height * nextScale) / 2)
+      x: Math.max(0, (wrapperRect.width - scaledBoardWidth) / 2),
+      y: Math.max(24, (wrapperRect.height - scaledBoardHeight) / 2)
     };
   }
 
@@ -178,9 +182,12 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
+        {/* Background decorations */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,0.28),transparent_18%),radial-gradient(circle_at_88%_20%,rgba(109,40,217,0.22),transparent_24%),radial-gradient(circle_at_72%_76%,rgba(14,165,233,0.16),transparent_18%),linear-gradient(90deg,#0d6aa2_0%,#071d49_35%,#25124f_72%,#3f2d6e_100%)]" />
         <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.02)_50%,rgba(255,255,255,0.02)_75%,transparent_75%,transparent)] [background-size:320px_320px]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,0.46)_0%,rgba(3,7,18,0.1)_18%,transparent_28%,transparent_72%,rgba(3,7,18,0.08)_88%,rgba(3,7,18,0.36)_100%)]" />
+
+        {/* Left rail */}
         <div className="absolute inset-y-0 left-0 hidden w-40 border-r border-cyan-400/30 lg:block">
           <div className="absolute left-6 top-8 flex flex-col gap-28 text-cyan-300/95">
             <span className="origin-left -rotate-90 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.6em]">
@@ -196,16 +203,22 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
           <div className="absolute inset-y-0 right-0 w-1 bg-cyan-300/70 shadow-[0_0_20px_rgba(34,211,238,0.7)]" />
         </div>
 
+        {/* Board container with transform */}
         <motion.div
           ref={boardRef}
           className="relative origin-top-left p-10 lg:p-14"
           animate={reduceMotion ? undefined : { x: offset.x, y: offset.y }}
           transition={reduceMotion ? undefined : { type: "spring", stiffness: 220, damping: 28, mass: 0.8 }}
-          style={{ scale, transformOrigin: "0 0" }}
+          style={{
+            scale,
+            transformOrigin: "0 0",
+            willChange: "transform"
+          }}
         >
           {children}
         </motion.div>
 
+        {/* Help text */}
         <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-md">
           Tip: use trackpad pinch or mouse wheel for zoom
         </div>

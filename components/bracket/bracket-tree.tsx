@@ -36,10 +36,23 @@ export function BracketTree({
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
   const bracketSize = nextPowerOfTwo(Math.max(maxTeams, 2));
-  const slotHeight = 180;
-  const treeHeight = bracketSize * slotHeight;
-  const columnWidth = 320;
-  const columnGap = 56;
+
+  // Improved spacing calculations
+  const MATCH_HEIGHT = 140;
+  const MATCH_WIDTH = 280;
+  const COLUMN_GAP = 80;
+  const MIN_VERTICAL_GAP = 20;
+
+  // Calculate vertical spacing dynamically based on bracket size
+  const calculateVerticalGap = (round: number) => {
+    const matchesInRound = bracketSize / Math.pow(2, round);
+    const totalHeight = bracketSize * MATCH_HEIGHT;
+    const availableSpacing = totalHeight - matchesInRound * MATCH_HEIGHT;
+    return Math.max(MIN_VERTICAL_GAP, availableSpacing / (matchesInRound - 1));
+  };
+
+  const totalHeight = bracketSize * MATCH_HEIGHT + (bracketSize - 1) * MIN_VERTICAL_GAP;
+  const totalWidth = rounds.length * MATCH_WIDTH + (rounds.length - 1) * COLUMN_GAP;
 
   if (!matches.length) {
     return (
@@ -58,32 +71,57 @@ export function BracketTree({
         <p className="text-xs font-black uppercase tracking-[0.5em]">Playoff bracket</p>
         <div className="h-px w-10 bg-cyan-300/60" />
       </div>
+
       <div
         className="relative bracket-board"
         style={{
-          minWidth: rounds.length * columnWidth + (rounds.length - 1) * columnGap,
-          height: treeHeight
+          width: totalWidth,
+          height: totalHeight,
+          perspective: "1200px"
         }}
       >
-        {rounds.map((round) => (
-          <div
-            key={round}
-            className="absolute top-0"
-            style={{ left: (round - 1) * (columnWidth + columnGap), width: columnWidth, height: treeHeight }}
-          >
-            <div className="absolute inset-x-0 top-0 flex justify-center">
-              <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
-                {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
-              </h2>
-            </div>
-            <div className="absolute inset-y-0 left-0 right-0 flex flex-col justify-center" style={{ gap: slotHeight * (2 ** round - 1) }}>
-              {matches
-                .filter((match) => match.round === round)
-                .sort((a, b) => a.position - b.position)
-                .map((match) => (
-                  <div key={match.id} className="relative match-node" data-match-id={match.id} style={{ height: slotHeight }}>
-                    <div className="absolute left-full top-1/2 hidden h-px w-7 -translate-y-1/2 bg-cyan-300/45 lg:block" />
-                    <div className="absolute left-full top-1/2 hidden h-24 w-px -translate-y-1/2 bg-cyan-300/35 lg:block" />
+        {/* Render all rounds */}
+        {rounds.map((round, roundIndex) => {
+          const matchesInRound = matches.filter((m) => m.round === round).sort((a, b) => a.position - b.position);
+          const verticalGap = calculateVerticalGap(round);
+          const roundX = roundIndex * (MATCH_WIDTH + COLUMN_GAP);
+
+          return (
+            <div
+              key={`round-${round}`}
+              className="absolute top-0"
+              style={{
+                left: roundX,
+                width: MATCH_WIDTH,
+                height: totalHeight
+              }}
+            >
+              {/* Round label */}
+              <div className="absolute -top-8 left-0 right-0 flex justify-center">
+                <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
+                  {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
+                </h2>
+              </div>
+
+              {/* Render matches in this round */}
+              {matchesInRound.map((match, matchIndex) => {
+                // Calculate Y position based on match index and vertical gap
+                const matchY = matchIndex * (MATCH_HEIGHT + verticalGap);
+
+                return (
+                  <div
+                    key={match.id}
+                    className="absolute"
+                    style={{
+                      top: matchY,
+                      left: 0,
+                      width: MATCH_WIDTH,
+                      height: MATCH_HEIGHT
+                    }}
+                    data-match-id={match.id}
+                    data-round={round}
+                    data-position={match.position}
+                  >
                     <MatchCard
                       match={match}
                       teamA={match.team_a_id ? teamsById.get(match.team_a_id) : undefined}
@@ -94,11 +132,22 @@ export function BracketTree({
                       isFinal={round === rounds.length}
                     />
                   </div>
-                ))}
+                );
+              })}
             </div>
-          </div>
-        ))}
-        <BracketConnectors matches={matches} />
+          );
+        })}
+
+        {/* Connectors overlay */}
+        <BracketConnectors
+          matches={matches}
+          rounds={rounds}
+          bracketSize={bracketSize}
+          matchHeight={MATCH_HEIGHT}
+          matchWidth={MATCH_WIDTH}
+          columnGap={COLUMN_GAP}
+          minVerticalGap={MIN_VERTICAL_GAP}
+        />
       </div>
     </div>
   );
