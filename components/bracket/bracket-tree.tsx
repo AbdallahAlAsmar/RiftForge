@@ -37,21 +37,35 @@ export function BracketTree({
   const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
   const bracketSize = nextPowerOfTwo(Math.max(maxTeams, 2));
 
-  // Improved spacing calculations
+  // Bracket geometry tuned for real-world competitive layouts
   const MATCH_HEIGHT = 140;
   const MATCH_WIDTH = 280;
-  const COLUMN_GAP = 80;
-  const MIN_VERTICAL_GAP = 20;
+  const COLUMN_GAP = 120;
+  const BASE_VERTICAL_GAP = 36;
 
-  // Calculate vertical spacing dynamically based on bracket size
-  const calculateVerticalGap = (round: number) => {
-    const matchesInRound = bracketSize / Math.pow(2, round);
-    const totalHeight = bracketSize * MATCH_HEIGHT;
-    const availableSpacing = totalHeight - matchesInRound * MATCH_HEIGHT;
-    return Math.max(MIN_VERTICAL_GAP, availableSpacing / (matchesInRound - 1));
-  };
+  const roundPositions = (() => {
+    const positions: Record<number, number[]> = {};
+    const roundOneCount = bracketSize / 2;
 
-  const totalHeight = bracketSize * MATCH_HEIGHT + (bracketSize - 1) * MIN_VERTICAL_GAP;
+    positions[1] = Array.from({ length: roundOneCount }, (_, index) => index * (MATCH_HEIGHT + BASE_VERTICAL_GAP));
+
+    for (let round = 2; round <= rounds.length; round += 1) {
+      const matchCount = bracketSize / Math.pow(2, round);
+      positions[round] = Array.from({ length: matchCount }, (_, index) => {
+        const prevIndex = index * 2;
+        const prevY1 = positions[round - 1]?.[prevIndex] ?? 0;
+        const prevY2 = positions[round - 1]?.[prevIndex + 1] ?? prevY1;
+        const prevCenter1 = prevY1 + MATCH_HEIGHT / 2;
+        const prevCenter2 = prevY2 + MATCH_HEIGHT / 2;
+        return (prevCenter1 + prevCenter2) / 2 - MATCH_HEIGHT / 2;
+      });
+    }
+
+    return positions;
+  })();
+
+  const roundOneBottom = (roundPositions[1]?.at(-1) ?? 0) + MATCH_HEIGHT;
+  const totalHeight = Math.max(roundOneBottom, MATCH_HEIGHT);
   const totalWidth = rounds.length * MATCH_WIDTH + (rounds.length - 1) * COLUMN_GAP;
 
   if (!matches.length) {
@@ -83,7 +97,6 @@ export function BracketTree({
         {/* Render all rounds */}
         {rounds.map((round, roundIndex) => {
           const matchesInRound = matches.filter((m) => m.round === round).sort((a, b) => a.position - b.position);
-          const verticalGap = calculateVerticalGap(round);
           const roundX = roundIndex * (MATCH_WIDTH + COLUMN_GAP);
 
           return (
@@ -104,9 +117,8 @@ export function BracketTree({
               </div>
 
               {/* Render matches in this round */}
-              {matchesInRound.map((match, matchIndex) => {
-                // Calculate Y position based on match index and vertical gap
-                const matchY = matchIndex * (MATCH_HEIGHT + verticalGap);
+                {matchesInRound.map((match, matchIndex) => {
+                  const matchY = roundPositions[round]?.[matchIndex] ?? 0;
 
                 return (
                   <div
@@ -146,7 +158,7 @@ export function BracketTree({
           matchHeight={MATCH_HEIGHT}
           matchWidth={MATCH_WIDTH}
           columnGap={COLUMN_GAP}
-          minVerticalGap={MIN_VERTICAL_GAP}
+          minVerticalGap={BASE_VERTICAL_GAP}
         />
       </div>
     </div>

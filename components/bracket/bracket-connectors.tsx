@@ -81,17 +81,9 @@ export default function BracketConnectors({
         const endX = dstPos.x;
         const endY = dstPos.y + dstPos.height / 2;
 
-        // Create smooth bezier curve
-        const horizontalDistance = endX - startX;
-        const controlPointDistance = Math.max(30, horizontalDistance * 0.4);
-
-        const c1X = startX + controlPointDistance;
-        const c1Y = startY;
-        const c2X = endX - controlPointDistance;
-        const c2Y = endY;
-
-        // Create path with proper curve
-        const pathData = `M ${startX} ${startY} C ${c1X} ${c1Y} ${c2X} ${c2Y} ${endX} ${endY}`;
+        // Create a classic bracket connector with right angles
+        const midX = startX + (endX - startX) / 2;
+        const pathData = `M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`;
         newPaths.push({
           d: pathData,
           color: "#18c6e6"
