@@ -11,6 +11,7 @@ type Point = { x: number; y: number };
 const MIN_SCALE = 0.55;
 const MAX_SCALE = 1.8;
 const SCALE_STEP = 0.12;
+const TOP_PADDING = 24;
 
 export function BracketCanvas({ children }: { children: ReactNode }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -24,6 +25,34 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
 
   const zoomLabel = useMemo(() => `${Math.round(scale * 100)}%`, [scale]);
 
+  function clampOffset(nextOffset: Point, nextScale: number) {
+    const wrapper = wrapperRef.current;
+    const board = boardRef.current;
+
+    if (!wrapper || !board) {
+      return nextOffset;
+    }
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const boardWidth = board.offsetWidth || 1;
+    const boardHeight = board.offsetHeight || 1;
+    const scaledBoardWidth = boardWidth * nextScale;
+    const scaledBoardHeight = boardHeight * nextScale;
+
+    const centeredX = (wrapperRect.width - scaledBoardWidth) / 2;
+    const centeredY = Math.max(TOP_PADDING, (wrapperRect.height - scaledBoardHeight) / 2);
+
+    const minX = scaledBoardWidth <= wrapperRect.width ? centeredX : wrapperRect.width - scaledBoardWidth;
+    const maxX = scaledBoardWidth <= wrapperRect.width ? centeredX : 0;
+    const minY = scaledBoardHeight <= wrapperRect.height ? centeredY : wrapperRect.height - scaledBoardHeight;
+    const maxY = scaledBoardHeight <= wrapperRect.height ? centeredY : TOP_PADDING;
+
+    return {
+      x: Math.min(maxX, Math.max(minX, nextOffset.x)),
+      y: Math.min(maxY, Math.max(minY, nextOffset.y))
+    };
+  }
+
   function getCenterOffset(nextScale: number) {
     const wrapper = wrapperRef.current;
     const board = boardRef.current;
@@ -33,16 +62,20 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     }
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const boardRect = board.getBoundingClientRect();
+    const boardWidth = board.offsetWidth || 1;
+    const boardHeight = board.offsetHeight || 1;
 
     // Calculate proper centering accounting for scale
-    const scaledBoardWidth = boardRect.width * nextScale;
-    const scaledBoardHeight = boardRect.height * nextScale;
+    const scaledBoardWidth = boardWidth * nextScale;
+    const scaledBoardHeight = boardHeight * nextScale;
 
-    return {
-      x: Math.max(0, (wrapperRect.width - scaledBoardWidth) / 2),
-      y: Math.max(24, (wrapperRect.height - scaledBoardHeight) / 2)
-    };
+    return clampOffset(
+      {
+        x: (wrapperRect.width - scaledBoardWidth) / 2,
+        y: (wrapperRect.height - scaledBoardHeight) / 2
+      },
+      nextScale
+    );
   }
 
   function applyZoom(nextScale: number, anchor?: Point) {
@@ -65,10 +98,13 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       const worldX = (anchor.x - rect.left - current.x) / scale;
       const worldY = (anchor.y - rect.top - current.y) / scale;
 
-      return {
+      return clampOffset(
+        {
         x: anchor.x - rect.left - worldX * safeScale,
         y: anchor.y - rect.top - worldY * safeScale
-      };
+        },
+        safeScale
+      );
     });
 
     setScale(safeScale);
@@ -125,10 +161,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     const dx = clientX - start.pointerX;
     const dy = clientY - start.pointerY;
 
-    setOffset({
-      x: start.offset.x + dx,
-      y: start.offset.y + dy
-    });
+    setOffset(clampOffset({ x: start.offset.x + dx, y: start.offset.y + dy }, scale));
   };
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
