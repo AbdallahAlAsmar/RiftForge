@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmMatchWinner, submitMatchResult } from "@/lib/actions/brackets";
+import { getBracketSlotLabel } from "@/lib/domain/brackets";
 
 type Team = {
   id: string;
@@ -22,10 +23,12 @@ type Match = {
 export function BracketTree({
   matches,
   teams,
+  maxTeams,
   canAdmin
 }: {
   matches: Match[];
   teams: Team[];
+  maxTeams: number;
   canAdmin: boolean;
 }) {
   const teamsById = new Map(teams.map((team) => [team.id, team]));
@@ -66,6 +69,7 @@ export function BracketTree({
                     teamA={match.team_a_id ? teamsById.get(match.team_a_id) : undefined}
                     teamB={match.team_b_id ? teamsById.get(match.team_b_id) : undefined}
                     winner={match.winner_team_id ? teamsById.get(match.winner_team_id) : undefined}
+                    maxTeams={maxTeams}
                     canAdmin={canAdmin}
                     isFinal={round === rounds.length}
                   />
@@ -83,6 +87,7 @@ function MatchCard({
   teamA,
   teamB,
   winner,
+  maxTeams,
   canAdmin,
   isFinal
 }: {
@@ -90,6 +95,7 @@ function MatchCard({
   teamA?: Team;
   teamB?: Team;
   winner?: Team;
+  maxTeams: number;
   canAdmin: boolean;
   isFinal?: boolean;
 }) {
@@ -103,13 +109,21 @@ function MatchCard({
       <div className="absolute inset-y-0 right-0 w-2 bg-cyan-400/95 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
       <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-3">
         <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-cyan-100/85">
-          {isFinal ? "Final" : `M${match.position}`}
+          {isFinal ? "Final" : `Stage ${match.round}`}
         </CardTitle>
         <Badge className="border-white/10 bg-white/5 text-[10px] uppercase tracking-[0.25em]">{match.status}</Badge>
       </CardHeader>
       <CardContent className="space-y-0 p-0">
-        <TeamRow team={teamA} isWinner={winner?.id === teamA?.id} />
-        <TeamRow team={teamB} isWinner={winner?.id === teamB?.id} />
+        <TeamRow
+          team={teamA}
+          placeholder={getBracketSlotLabel(maxTeams, match.round, match.position, "A")}
+          isWinner={winner?.id === teamA?.id}
+        />
+        <TeamRow
+          team={teamB}
+          placeholder={getBracketSlotLabel(maxTeams, match.round, match.position, "B")}
+          isWinner={winner?.id === teamB?.id}
+        />
         {winner ? (
           <div className="flex items-center gap-2 border-t border-white/5 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
             <Trophy className="h-4 w-4" />
@@ -142,12 +156,12 @@ function MatchCard({
   );
 }
 
-function TeamRow({ team, isWinner }: { team?: Team; isWinner: boolean }) {
+function TeamRow({ team, placeholder, isWinner }: { team?: Team; placeholder: string; isWinner: boolean }) {
   return (
     <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3 last:border-b-0">
       <TeamGlyph name={team?.name} />
       <span className={team ? "text-sm font-semibold uppercase tracking-[0.16em] text-white" : "text-sm text-slate-400"}>
-        {team?.name ?? "WINNER"}
+        {team?.name ?? placeholder}
       </span>
       {isWinner ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.35em] text-slate-500">vs</span>}
     </div>

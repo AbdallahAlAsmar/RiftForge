@@ -4,6 +4,10 @@ export type SeedTeam = {
   average_tsr: number;
 };
 
+export type TeamStrengthTeam = SeedTeam & {
+  rankScore?: number;
+};
+
 export type GeneratedMatch = {
   round: number;
   position: number;
@@ -14,6 +18,33 @@ export type GeneratedMatch = {
   status: "pending" | "ready" | "confirmed";
   winnerTeamId?: string | null;
 };
+
+export type SlotSide = "A" | "B";
+
+export function createBracketSkeleton(teamCapacity: number): GeneratedMatch[] {
+  const bracketSize = nextPowerOfTwo(Math.max(teamCapacity, 2));
+  const rounds = Math.log2(bracketSize);
+  const matches: GeneratedMatch[] = [];
+
+  for (let round = 1; round <= rounds; round += 1) {
+    const matchCount = bracketSize / 2 ** round;
+
+    for (let position = 1; position <= matchCount; position += 1) {
+      matches.push({
+        round,
+        position,
+        teamAId: null,
+        teamBId: null,
+        nextRound: round < rounds ? round + 1 : null,
+        nextPosition: round < rounds ? Math.ceil(position / 2) : null,
+        status: "pending",
+        winnerTeamId: null
+      });
+    }
+  }
+
+  return matches;
+}
 
 export function generateSingleEliminationBracket(teams: SeedTeam[]): GeneratedMatch[] {
   const seeded = seedByStrength(teams);
@@ -46,6 +77,20 @@ export function generateSingleEliminationBracket(teams: SeedTeam[]): GeneratedMa
   }
 
   return matches;
+}
+
+export function getBracketSlotLabel(teamCapacity: number, round: number, position: number, side: SlotSide) {
+  if (round > 1) {
+    return "Winner";
+  }
+
+  const slotNumber = (position - 1) * 2 + (side === "A" ? 1 : 2);
+  return slotNumber <= teamCapacity ? `Team ${slotNumber}` : "BYE";
+}
+
+export function getTeamStrength(team: TeamStrengthTeam) {
+  const rankScore = team.rankScore ?? 0;
+  return team.average_tsr * 0.7 + rankScore * 0.3;
 }
 
 export function seedByStrength(teams: SeedTeam[]) {

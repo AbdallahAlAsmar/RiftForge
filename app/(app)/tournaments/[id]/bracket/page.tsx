@@ -43,6 +43,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
         <BracketTree
           matches={matches ?? []}
           teams={teams ?? []}
+          maxTeams={tournament.max_teams}
           canAdmin={user?.id === tournament.owner_id}
         />
       </BracketCanvas>

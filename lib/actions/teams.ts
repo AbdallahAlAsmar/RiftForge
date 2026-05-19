@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { formString } from "./common";
+import { syncBracketSeeding } from "./brackets";
 
 const teamSchema = z.object({
   tournamentId: z.string().uuid().optional().or(z.literal("")),
@@ -86,6 +87,8 @@ export async function createTeam(_: unknown, formData: FormData) {
       team_id: team.id,
       participant_type: "player"
     });
+
+    await syncBracketSeeding(parsed.data.tournamentId);
   }
 
   revalidatePath("/teams");

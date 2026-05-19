@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { requireLinkedRiotAccount } from "@/lib/auth/accounts";
 import { checkTeamEligibility, formatTeamEligibilityIssue } from "@/lib/domain/team-eligibility";
 import { createClient } from "@/lib/supabase/server";
+import { initializeBracket, syncBracketSeeding } from "./brackets";
 import { formString, requireTournamentOwner, slugify, tournamentSchema } from "./common";
 
 async function assignRandomAvailableTeam(tournamentId: string, userId: string, teamSize: number) {
@@ -95,6 +96,12 @@ export async function createTournament(_: unknown, formData: FormData) {
     .single();
 
   if (error) return { ok: false, message: error.message };
+
+  const initialized = await initializeBracket(data.id, parsed.data.maxTeams, parsed.data.format);
+  if (!initialized.ok) return initialized;
+
+  const tournamentForSeeding = await syncBracketSeeding(data.id);
+  if (!tournamentForSeeding.ok) return tournamentForSeeding;
 
   revalidatePath("/tournaments");
   redirect(`/tournaments/${data.id}/admin`);
@@ -237,6 +244,8 @@ export async function joinTournamentWithTeam(tournamentId: string, teamId: strin
     { onConflict: "tournament_id,user_id" }
   );
   if (participantError) return { ok: false, message: participantError.message };
+
+  await syncBracketSeeding(tournamentId);
 
   revalidatePath(`/tournaments/${tournamentId}`);
   revalidatePath(`/teams/${team.id}`);
