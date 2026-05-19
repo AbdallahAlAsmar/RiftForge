@@ -28,7 +28,7 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.45em] text-cyan-300">Live bracket system</p>
+          <p className="text-xs font-black uppercase tracking-[0.45em] text-red-400">Live bracket system</p>
           <h1 className="mt-2 text-3xl font-bold">{tournament.name} bracket</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
             Pan around, zoom in, and follow the bracket like a live esports broadcast.

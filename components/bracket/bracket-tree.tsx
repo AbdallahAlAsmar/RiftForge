@@ -81,10 +81,10 @@ export function BracketTree({
 
   return (
     <div className="w-max pb-6">
-      <div className="mb-8 flex items-center gap-3 text-cyan-200">
-        <div className="h-px w-10 bg-cyan-300/60" />
+      <div className="mb-8 flex items-center gap-3 text-red-400">
+        <div className="h-px w-10 bg-red-400/60" />
         <p className="text-xs font-black uppercase tracking-[0.5em]">Playoff bracket</p>
-        <div className="h-px w-10 bg-cyan-300/60" />
+        <div className="h-px w-10 bg-red-400/60" />
       </div>
 
       <div
@@ -112,7 +112,7 @@ export function BracketTree({
             >
               {/* Round label */}
               <div className="absolute -top-8 left-0 right-0 flex justify-center">
-                <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
+                <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-white/90">
                   {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
                 </h2>
               </div>
