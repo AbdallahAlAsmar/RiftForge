@@ -248,10 +248,9 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
         <motion.div
           ref={boardRef}
           className="relative origin-top-left p-10 lg:p-14"
-          animate={reduceMotion ? undefined : { x: offset.x, y: offset.y }}
-          transition={reduceMotion ? undefined : { type: "spring", stiffness: 220, damping: 28, mass: 0.8 }}
+          animate={{ x: offset.x, y: offset.y, scale }}
+          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 28, mass: 0.8 }}
           style={{
-            scale,
             transformOrigin: "0 0",
             willChange: "transform"
           }}
