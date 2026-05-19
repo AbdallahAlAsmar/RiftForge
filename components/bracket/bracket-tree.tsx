@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmMatchWinner, submitMatchResult } from "@/lib/actions/brackets";
 import { getBracketSlotLabel } from "@/lib/domain/brackets";
+import BracketConnectors from "./bracket-connectors";
 
 type Team = {
   id: string;
@@ -18,6 +19,7 @@ type Match = {
   team_b_id: string | null;
   winner_team_id: string | null;
   status: string;
+  next_match_id?: string | null;
 };
 
 export function BracketTree({
@@ -34,7 +36,7 @@ export function BracketTree({
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
   const bracketSize = nextPowerOfTwo(Math.max(maxTeams, 2));
-  const slotHeight = 150;
+  const slotHeight = 180;
   const treeHeight = bracketSize * slotHeight;
   const columnWidth = 320;
   const columnGap = 56;
@@ -57,7 +59,7 @@ export function BracketTree({
         <div className="h-px w-10 bg-cyan-300/60" />
       </div>
       <div
-        className="relative"
+        className="relative bracket-board"
         style={{
           minWidth: rounds.length * columnWidth + (rounds.length - 1) * columnGap,
           height: treeHeight
@@ -69,15 +71,17 @@ export function BracketTree({
             className="absolute top-0"
             style={{ left: (round - 1) * (columnWidth + columnGap), width: columnWidth, height: treeHeight }}
           >
-            <h2 className="absolute left-0 top-0 text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
-              {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
-            </h2>
+            <div className="absolute inset-x-0 top-0 flex justify-center">
+              <h2 className="text-[10px] font-semibold uppercase tracking-[0.5em] text-cyan-100/70">
+                {round === rounds.length ? "Champion" : round === rounds.length - 1 ? "Final" : `Round ${round}`}
+              </h2>
+            </div>
             <div className="absolute inset-y-0 left-0 right-0 flex flex-col justify-center" style={{ gap: slotHeight * (2 ** round - 1) }}>
               {matches
                 .filter((match) => match.round === round)
                 .sort((a, b) => a.position - b.position)
                 .map((match) => (
-                  <div key={match.id} className="relative" style={{ height: slotHeight }}>
+                  <div key={match.id} className="relative match-node" data-match-id={match.id} style={{ height: slotHeight }}>
                     <div className="absolute left-full top-1/2 hidden h-px w-7 -translate-y-1/2 bg-cyan-300/45 lg:block" />
                     <div className="absolute left-full top-1/2 hidden h-24 w-px -translate-y-1/2 bg-cyan-300/35 lg:block" />
                     <MatchCard
@@ -94,6 +98,7 @@ export function BracketTree({
             </div>
           </div>
         ))}
+        <BracketConnectors matches={matches} />
       </div>
     </div>
   );
@@ -124,7 +129,7 @@ function MatchCard({
   return (
     <Card className="relative h-full w-full overflow-hidden border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
       <div className="absolute inset-y-0 right-0 w-2 bg-cyan-400/95 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
-      <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-3">
+      <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-2">
         <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-cyan-100/85">
           {isFinal ? "Final" : `Stage ${match.round}`}
         </CardTitle>
@@ -175,7 +180,7 @@ function MatchCard({
 
 function TeamRow({ team, placeholder, isWinner }: { team?: Team; placeholder: string; isWinner: boolean }) {
   return (
-    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3 last:border-b-0">
+    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-2 last:border-b-0">
       <TeamGlyph name={team?.name} />
       <span className={team ? "text-sm font-semibold uppercase tracking-[0.16em] text-white" : "text-sm text-slate-400"}>
         {team?.name ?? placeholder}
