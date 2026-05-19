@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateCachePrefix } from "@/lib/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
@@ -8,7 +9,10 @@ import { requireLinkedRiotAccount } from "@/lib/auth/accounts";
 import { checkTeamEligibility, formatTeamEligibilityIssue } from "@/lib/domain/team-eligibility";
 import { createClient } from "@/lib/supabase/server";
 import { initializeBracket, syncBracketSeeding } from "./brackets";
-import { formString, requireTournamentOwner, slugify, tournamentSchema } from "./common";
+import { containsProhibitedContent, formString, requireTournamentOwner, slugify, tournamentSchema } from "./common";
+
+const MAX_TOURNAMENTS_PER_HOUR = 3;
+const MAX_TOURNAMENTS_PER_DAY = 20;
 
 async function assignRandomAvailableTeam(tournamentId: string, userId: string, teamSize: number) {
   const admin = createAdminClient();
@@ -74,6 +78,45 @@ export async function createTournament(_: unknown, formData: FormData) {
     return { ok: false, message: "Tournament settings are incomplete." };
   }
 
+  if (
+    containsProhibitedContent(parsed.data.name) ||
+    (parsed.data.description && containsProhibitedContent(parsed.data.description))
+  ) {
+    return { ok: false, message: "Tournament name or description contains prohibited language." };
+  }
+
+  const admin = createAdminClient();
+  const now = Date.now();
+  const hourAgo = new Date(now - 60 * 60 * 1000).toISOString();
+  const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    { count: hourlyCount, error: hourlyError },
+    { count: dailyCount, error: dailyError }
+  ] = await Promise.all([
+    admin
+      .from("tournaments")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .gte("created_at", hourAgo),
+    admin
+      .from("tournaments")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .gte("created_at", dayAgo)
+  ]);
+
+  if (hourlyError || dailyError) {
+    return { ok: false, message: "Unable to validate tournament limits. Please try again." };
+  }
+
+  if ((hourlyCount ?? 0) >= MAX_TOURNAMENTS_PER_HOUR || (dailyCount ?? 0) >= MAX_TOURNAMENTS_PER_DAY) {
+    return {
+      ok: false,
+      message: `Tournament creation limit reached. Max ${MAX_TOURNAMENTS_PER_HOUR} per hour and ${MAX_TOURNAMENTS_PER_DAY} per day.`
+    };
+  }
+
   const supabase = await createClient();
   const slug = `${slugify(parsed.data.name)}-${crypto.randomUUID().slice(0, 6)}`;
   const { data, error } = await supabase
@@ -103,6 +146,7 @@ export async function createTournament(_: unknown, formData: FormData) {
   const tournamentForSeeding = await syncBracketSeeding(data.id);
   if (!tournamentForSeeding.ok) return tournamentForSeeding;
 
+  await invalidateCachePrefix("tournaments:list:");
   revalidatePath("/tournaments");
   redirect(`/tournaments/${data.id}/admin`);
 }
@@ -117,6 +161,7 @@ export async function publishTournament(tournamentId: string) {
 
   if (error) return { ok: false, message: error.message };
 
+  await invalidateCachePrefix("tournaments:list:");
   revalidatePath(`/tournaments/${tournamentId}`);
   revalidatePath("/tournaments");
   return { ok: true, message: "Tournament published." };
@@ -214,8 +259,7 @@ export async function joinTournamentWithTeam(tournamentId: string, teamId: strin
     return { ok: false, message: "This team has no members yet." };
   }
 
-  // BYPASS: Do not enforce Riot Games account requirement for testing
-  /*
+  // Enforce Riot Games account requirement for all team members
   const { data: linkedRiotAccounts } = await admin
     .from("riot_accounts")
     .select("user_id")
@@ -226,7 +270,6 @@ export async function joinTournamentWithTeam(tournamentId: string, teamId: strin
       message: "Every team member must connect a Riot Games account before tournament registration."
     };
   }
-  */
 
   const { error: teamUpdateError } = await admin
     .from("teams")

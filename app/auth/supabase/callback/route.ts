@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tsrForRank } from "@/lib/domain/ranks";
+import { rateLimit } from "@/lib/rate-limit";
 
 function sanitizeInternalPath(pathname: string | null) {
   if (!pathname || !pathname.startsWith("/") || pathname.startsWith("//")) return "/tournaments";
@@ -38,6 +39,11 @@ function avatarFromMetadata(user: { user_metadata?: Record<string, unknown> }) {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") || "unknown";
+  if (!rateLimit(ip, 10, 60 * 1000)) {
+    return new NextResponse("Too many requests", { status: 429 });
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const nextPath = sanitizeInternalPath(url.searchParams.get("next"));

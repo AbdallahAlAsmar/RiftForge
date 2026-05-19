@@ -56,6 +56,23 @@ export async function generateBalancedTeams(tournamentId: string) {
   await requireTournamentOwner(tournamentId);
   const admin = createAdminClient();
 
+  // Check for duplicate generation attempts (rate limit to once per 50 seconds)
+  const fiftySecondsAgo = new Date(Date.now() - 50 * 1000).toISOString();
+  const { data: recentTeamGeneration } = await admin
+    .from("teams")
+    .select("id")
+    .eq("tournament_id", tournamentId)
+    .eq("source", "solo_duo_generated")
+    .gte("created_at", fiftySecondsAgo)
+    .limit(1);
+
+  if (recentTeamGeneration?.length) {
+    return {
+      ok: false,
+      message: "Team generation already in progress. Please wait."
+    };
+  }
+
   const { data: tournament, error: tournamentError } = await admin
     .from("tournaments")
     .select("team_size")

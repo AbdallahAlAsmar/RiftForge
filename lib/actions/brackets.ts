@@ -222,6 +222,32 @@ export async function submitMatchResult(matchId: string, formData: FormData) {
     return { ok: false, message: "Winner must be one of the teams in the match." };
   }
 
+  // Verify user is captain of one of the teams OR the tournament admin
+  const [{ data: tournament }, { data: teamA }, { data: teamB }] = await Promise.all([
+    supabase.from("tournaments").select("owner_id").eq("id", match.tournament_id).single(),
+    match.team_a_id ? supabase.from("teams").select("captain_id").eq("id", match.team_a_id).single() : Promise.resolve({ data: null }),
+    match.team_b_id ? supabase.from("teams").select("captain_id").eq("id", match.team_b_id).single() : Promise.resolve({ data: null })
+  ]);
+
+  const isCaptain = teamA?.captain_id === user.id || teamB?.captain_id === user.id;
+  const isAdmin = tournament?.owner_id === user.id;
+
+  if (!isCaptain && !isAdmin) {
+    return { ok: false, message: "Only team captains or tournament admins can report results." };
+  }
+
+  // Prevent duplicate submissions
+  const { data: existing } = await supabase
+    .from("match_results")
+    .select("id")
+    .eq("match_id", matchId)
+    .eq("status", "submitted")
+    .maybeSingle();
+
+  if (existing) {
+    return { ok: false, message: "Result already submitted for this match." };
+  }
+
   const { error } = await supabase.from("match_results").insert({
     match_id: matchId,
     submitted_by: user.id,

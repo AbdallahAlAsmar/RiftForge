@@ -10,6 +10,7 @@ import {
   riotBridgePassword
 } from "@/lib/auth/riot";
 import { tsrForRank } from "@/lib/domain/ranks";
+import { rateLimit } from "@/lib/rate-limit";
 
 function sanitizeInternalPath(pathname: string | null) {
   if (!pathname || !pathname.startsWith("/") || pathname.startsWith("//")) return "/tournaments";
@@ -17,6 +18,11 @@ function sanitizeInternalPath(pathname: string | null) {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") || "unknown";
+  if (!rateLimit(ip, 10, 60 * 1000)) {
+    return new NextResponse("Too many requests", { status: 429 });
+  }
+
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");

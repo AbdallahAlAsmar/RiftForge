@@ -46,7 +46,21 @@ export async function createTeam(_: unknown, formData: FormData) {
   const logo = formData.get("logo");
 
   if (logo instanceof File && logo.size > 0) {
-    const extension = logo.name.split(".").pop() ?? "png";
+    const validExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
+    const extension = logo.name.split(".").pop()?.toLowerCase() ?? "png";
+
+    if (!validExtensions.includes(extension)) {
+      return { ok: false, message: "Invalid file type. Only JPG, JPEG, PNG, WEBP, and GIF are allowed." };
+    }
+
+    if (logo.size > 5 * 1024 * 1024) {
+      return { ok: false, message: "File too large. Maximum size is 5MB." };
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(logo.type)) {
+      return { ok: false, message: "Invalid file type." };
+    }
+
     const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage.from("team-logos").upload(path, logo, {
       upsert: false,

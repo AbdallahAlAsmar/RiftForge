@@ -24,6 +24,9 @@ function getRequiredRiotEnv(
 }
 
 export function isRiotMockEnabled() {
+  if (process.env.NODE_ENV === "production" && process.env.RIOT_DEV_MOCK === "true") {
+    throw new Error("RIOT_DEV_MOCK must not be enabled in production!");
+  }
   return process.env.NODE_ENV !== "production" && process.env.RIOT_DEV_MOCK === "true";
 }
 

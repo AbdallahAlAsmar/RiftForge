@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { CreateTournamentForm } from "@/components/tournament/create-tournament-form";
 import { Float, HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reveal";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedData } from "@/lib/cache";
 
 export default async function TournamentsPage({
   searchParams
@@ -21,21 +22,29 @@ export default async function TournamentsPage({
   const statusFilter = typeof resolvedParams?.status === "string" ? resolvedParams.status : "all";
   const formatFilter = typeof resolvedParams?.format === "string" ? resolvedParams.format : "all";
 
-  let query = supabase.from("tournaments").select("*").order("created_at", { ascending: false });
+  const cacheKey = `tournaments:list:q_${searchQuery}:s_${statusFilter}:f_${formatFilter}`;
+  const tournaments = await getCachedData(
+    cacheKey,
+    async () => {
+      let query = supabase.from("tournaments").select("*").order("created_at", { ascending: false });
 
-  if (searchQuery) {
-    query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-  }
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
 
-  if (statusFilter !== "all") {
-    query = query.eq("status", statusFilter);
-  }
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
 
-  if (formatFilter !== "all") {
-    query = query.eq("format", formatFilter);
-  }
+      if (formatFilter !== "all") {
+        query = query.eq("format", formatFilter);
+      }
 
-  const { data: tournaments } = await query;
+      const { data } = await query;
+      return data || [];
+    },
+    15 // Cache list for 15 seconds to protect database while maintaining real-time feel
+  );
   const joinStatusLabel =
     statusFilter === "all"
       ? "Any"

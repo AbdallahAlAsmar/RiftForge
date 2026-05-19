@@ -25,6 +25,51 @@ export function formStringArray(formData: FormData, key: string) {
   return formData.getAll(key).filter((value): value is string => typeof value === "string");
 }
 
+const PROHIBITED_TERMS = [
+  "asshole",
+  "bastard",
+  "bitch",
+  "bullshit",
+  "crap",
+  "damn",
+  "dick",
+  "douche",
+  "fuck",
+  "motherfucker",
+  "pussy",
+  "shit",
+  "slut",
+  "whore"
+];
+
+function normalizeForModeration(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function containsProhibitedContent(value: string) {
+  const normalized = normalizeForModeration(value);
+  if (!normalized) return false;
+
+  return PROHIBITED_TERMS.some((term) => {
+    const normalizedTerm = normalizeForModeration(term);
+    if (!normalizedTerm) return false;
+    if (normalizedTerm.includes(" ")) {
+      return normalized.includes(normalizedTerm);
+    }
+    return new RegExp(`\\b${escapeRegex(normalizedTerm)}\\b`).test(normalized);
+  });
+}
+
 export async function requireTournamentOwner(tournamentId: string) {
   const user = await requireUser();
   const supabase = await createClient();

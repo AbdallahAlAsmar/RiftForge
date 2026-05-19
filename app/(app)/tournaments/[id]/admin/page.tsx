@@ -18,7 +18,7 @@ export default async function TournamentAdminPage({
   const { tournament } = await requireTournamentOwner(id);
   const admin = createAdminClient();
 
-  const [{ data: teams }, { data: queueEntries }, { data: participants }, { data: matches }, { data: results }] =
+  const [{ data: teams }, { data: queueEntries }, { data: rawParticipants }, { data: matches }, { data: results }] =
     await Promise.all([
       admin.from("teams").select("id, name, average_tsr, source").eq("tournament_id", id),
       admin
@@ -28,7 +28,7 @@ export default async function TournamentAdminPage({
         .order("created_at", { ascending: true }),
       admin
         .from("tournament_participants")
-        .select("id, user_id, team_id, users(display_name, preferred_roles, tsr)")
+        .select("id, user_id, team_id")
         .eq("tournament_id", id),
       admin.from("matches").select("id, status").eq("tournament_id", id),
       admin
@@ -36,6 +36,20 @@ export default async function TournamentAdminPage({
         .select("id, status, match_id, winner_team_id")
         .eq("status", "submitted")
     ]);
+
+  const participantUserIds = Array.from(new Set((rawParticipants || []).map((p) => p.user_id)));
+  const { data: userProfiles } = participantUserIds.length > 0
+    ? await admin
+        .from("users")
+        .select("id, display_name, preferred_roles, tsr")
+        .in("id", participantUserIds)
+    : { data: [] };
+
+  const profilesById = new Map((userProfiles || []).map((u) => [u.id, u]));
+  const participants = (rawParticipants || []).map((p) => ({
+    ...p,
+    users: profilesById.get(p.user_id) || null
+  }));
 
   async function publishAction() {
     "use server";
