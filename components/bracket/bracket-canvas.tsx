@@ -49,6 +49,16 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", updateHeight);
   }, []);
 
+  function getBoardContentSize() {
+    const board = boardRef.current;
+    if (!board) return { width: 1, height: 1 };
+
+    const width = board.scrollWidth || board.offsetWidth || 1;
+    const height = board.scrollHeight || board.offsetHeight || 1;
+
+    return { width, height };
+  }
+
   function getFitScale() {
     const wrapper = wrapperRef.current;
     const board = boardRef.current;
@@ -58,8 +68,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     }
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const boardWidth = board.offsetWidth || 1;
-    const boardHeight = board.offsetHeight || 1;
+    const { width: boardWidth, height: boardHeight } = getBoardContentSize();
     const availableWidth = Math.max(1, wrapperRect.width - FIT_PADDING * 2);
     const availableHeight = Math.max(1, wrapperRect.height - FIT_PADDING * 2);
     const fitScale = Math.min(availableWidth / boardWidth, availableHeight / boardHeight);
@@ -82,8 +91,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     }
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const boardWidth = board.offsetWidth || 1;
-    const boardHeight = board.offsetHeight || 1;
+    const { width: boardWidth, height: boardHeight } = getBoardContentSize();
     const scaledBoardWidth = boardWidth * nextScale;
     const scaledBoardHeight = boardHeight * nextScale;
 
@@ -111,8 +119,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     }
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const boardWidth = board.offsetWidth || 1;
-    const boardHeight = board.offsetHeight || 1;
+    const { width: boardWidth, height: boardHeight } = getBoardContentSize();
 
     // Calculate proper centering accounting for scale
     const scaledBoardWidth = boardWidth * nextScale;
