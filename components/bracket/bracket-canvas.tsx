@@ -90,8 +90,9 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     const centeredX = (wrapperRect.width - scaledBoardWidth) / 2;
     const centeredY = Math.max(TOP_PADDING, (wrapperRect.height - scaledBoardHeight) / 2);
 
-    const minX = scaledBoardWidth <= wrapperRect.width ? centeredX : wrapperRect.width - scaledBoardWidth;
-    const maxX = scaledBoardWidth <= wrapperRect.width ? centeredX : 0;
+    const H_PEEK = 64;
+    const minX = scaledBoardWidth <= wrapperRect.width ? centeredX - H_PEEK : wrapperRect.width - scaledBoardWidth;
+    const maxX = scaledBoardWidth <= wrapperRect.width ? centeredX + H_PEEK : 0;
     const minY = scaledBoardHeight <= wrapperRect.height ? centeredY : wrapperRect.height - scaledBoardHeight;
     const maxY = scaledBoardHeight <= wrapperRect.height ? centeredY : TOP_PADDING;
 

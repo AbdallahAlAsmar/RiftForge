@@ -42,6 +42,7 @@ export function BracketTree({
   const MATCH_WIDTH = 280;
   const COLUMN_GAP = 120;
   const BASE_VERTICAL_GAP = 36;
+  const RIGHT_PADDING = 140;
 
   const roundPositions = (() => {
     const positions: Record<number, number[]> = {};
@@ -66,7 +67,7 @@ export function BracketTree({
 
   const roundOneBottom = (roundPositions[1]?.at(-1) ?? 0) + MATCH_HEIGHT;
   const totalHeight = Math.max(roundOneBottom, MATCH_HEIGHT);
-  const totalWidth = rounds.length * MATCH_WIDTH + (rounds.length - 1) * COLUMN_GAP;
+  const totalWidth = rounds.length * MATCH_WIDTH + (rounds.length - 1) * COLUMN_GAP + RIGHT_PADDING;
 
   if (!matches.length) {
     return (
