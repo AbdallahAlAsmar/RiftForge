@@ -81,7 +81,7 @@ export function generateSingleEliminationBracket(teams: SeedTeam[]): GeneratedMa
 
 export function getBracketSlotLabel(teamCapacity: number, round: number, position: number, side: SlotSide) {
   if (round > 1) {
-    return "Winner";
+    return "To be decided";
   }
 
   const slotNumber = (position - 1) * 2 + (side === "A" ? 1 : 2);

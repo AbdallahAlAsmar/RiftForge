@@ -92,7 +92,7 @@ export default function BracketConnectors({
         const pathData = `M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`;
         newPaths.push({
           d: pathData,
-          color: "#18c6e6"
+          color: "#FF3B3B"
         });
       }
 
@@ -166,8 +166,8 @@ export default function BracketConnectors({
           </feMerge>
         </filter>
         <linearGradient id="connector-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#18c6e6" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.7" />
+          <stop offset="0%" stopColor="#FF3B3B" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#FF5252" stopOpacity="0.7" />
         </linearGradient>
       </defs>
 

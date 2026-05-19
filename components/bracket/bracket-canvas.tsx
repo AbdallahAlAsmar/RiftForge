@@ -316,7 +316,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       <div
         ref={wrapperRef}
         className={cn(
-          "relative min-h-[360px] touch-none select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#050712] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
+          "relative min-h-[360px] touch-none select-none overflow-hidden rounded-[28px] border border-white/20 bg-[#0A0A0A] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
           isPanning ? "cursor-grabbing" : "cursor-grab"
         )}
         style={wrapperHeight ? { height: wrapperHeight } : undefined}
@@ -326,13 +326,13 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
         onPointerCancel={handlePointerUp}
       >
         {/* Background decorations */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,0.28),transparent_18%),radial-gradient(circle_at_88%_20%,rgba(109,40,217,0.22),transparent_24%),radial-gradient(circle_at_72%_76%,rgba(14,165,233,0.16),transparent_18%),linear-gradient(90deg,#0d6aa2_0%,#071d49_35%,#25124f_72%,#3f2d6e_100%)]" />
-        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.02)_50%,rgba(255,255,255,0.02)_75%,transparent_75%,transparent)] [background-size:320px_320px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,0.46)_0%,rgba(3,7,18,0.1)_18%,transparent_28%,transparent_72%,rgba(3,7,18,0.08)_88%,rgba(3,7,18,0.36)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(255,59,59,0.15),transparent_18%),radial-gradient(circle_at_88%_20%,rgba(255,59,59,0.08),transparent_24%),linear-gradient(90deg,#1a1a1a_0%,#0A0A0A_35%,#1a1a1a_72%,#141414_100%)]" />
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(255,255,255,0.02)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.01)_50%,rgba(255,255,255,0.01)_75%,transparent_75%,transparent)] [background-size:320px_320px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.6)_0%,rgba(10,10,10,0.2)_18%,transparent_28%,transparent_72%,rgba(10,10,10,0.15)_88%,rgba(10,10,10,0.5)_100%)]" />
 
         {/* Left rail */}
-        <div className="absolute inset-y-0 left-0 hidden w-40 border-r border-cyan-400/30 lg:block">
-          <div className="absolute left-6 top-8 flex flex-col gap-28 text-cyan-300/95">
+        <div className="absolute inset-y-0 left-0 hidden w-40 border-r border-red-500/30 lg:block">
+          <div className="absolute left-6 top-8 flex flex-col gap-28 text-red-400/95">
             <span className="origin-left -rotate-90 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.6em]">
               Playoffs
             </span>
@@ -343,7 +343,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
               Playoffs
             </span>
           </div>
-          <div className="absolute inset-y-0 right-0 w-1 bg-cyan-300/70 shadow-[0_0_20px_rgba(34,211,238,0.7)]" />
+          <div className="absolute inset-y-0 right-0 w-1 bg-red-500/70 shadow-[0_0_20px_rgba(255,59,59,0.7)]" />
         </div>
 
         {/* Board container with transform */}
@@ -371,7 +371,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
 
 function ZoomPill({ value }: { value: string }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-200">
+    <div className="inline-flex items-center gap-2 rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400">
       <ZoomIn className="h-3.5 w-3.5" />
       {value}
     </div>

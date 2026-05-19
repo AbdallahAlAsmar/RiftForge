@@ -189,10 +189,10 @@ function MatchCard({
   }
 
   return (
-    <Card className="relative h-full w-full border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-      <div className="absolute inset-y-0 right-0 w-2 bg-cyan-400/95 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
-      <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-2">
-        <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-cyan-100/85">
+    <Card className="relative h-full w-full border border-red-500/40 bg-[#141414]/95 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+      <div className="absolute inset-y-0 right-0 w-2 bg-red-500/95 shadow-[0_0_18px_rgba(255,59,59,0.9)]" />
+      <CardHeader className="flex-row items-center justify-between border-b border-white/10 py-2">
+        <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-white/90">
           {isFinal ? "Final" : `Stage ${match.round}`}
         </CardTitle>
         <Badge className="border-white/10 bg-white/5 text-[10px] uppercase tracking-[0.25em]">{match.status}</Badge>
@@ -242,12 +242,12 @@ function MatchCard({
 
 function TeamRow({ team, placeholder, isWinner }: { team?: Team; placeholder: string; isWinner: boolean }) {
   return (
-    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-2 last:border-b-0">
+    <div className="flex items-center gap-3 border-b border-white/10 px-4 py-2 last:border-b-0">
       <TeamGlyph name={team?.name} />
-      <span className={team ? "text-sm font-semibold uppercase tracking-[0.16em] text-white" : "text-sm text-slate-400"}>
+      <span className={team ? "text-sm font-semibold uppercase tracking-[0.16em] text-white" : "text-sm text-[#8A8A8A]"}>
         {team?.name ?? placeholder}
       </span>
-      {isWinner ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.35em] text-slate-500">vs</span>}
+      {isWinner ? <Check className="ml-auto h-4 w-4 text-red-500" /> : <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.35em] text-[#8A8A8A]">vs</span>}
     </div>
   );
 }
@@ -263,7 +263,7 @@ function TeamGlyph({ name }: { name?: string }) {
     : "W";
 
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-cyan-300/35 bg-cyan-300/10 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-red-500/35 bg-red-500/10 text-[10px] font-black uppercase tracking-[0.18em] text-red-400">
       {initials}
     </div>
   );
