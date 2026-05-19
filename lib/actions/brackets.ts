@@ -86,7 +86,7 @@ export async function syncBracketSeeding(tournamentId: string) {
   for (const match of firstRoundMatches) {
     const { data: updated } = await admin
       .from("matches")
-      .select("id, team_a_id, team_b_id, next_match_id")
+      .select("id, position, team_a_id, team_b_id, next_match_id")
       .eq("id", match.id)
       .single();
 
@@ -104,7 +104,7 @@ export async function syncBracketSeeding(tournamentId: string) {
         .update({ status: "confirmed", winner_team_id: winnerTeamId })
         .eq("id", updated.id);
 
-      await advanceWinner(admin, updated as { id: string; position: number; next_match_id: string | null }, winnerTeamId);
+      await advanceWinner(admin, updated, winnerTeamId);
     }
   }
 
