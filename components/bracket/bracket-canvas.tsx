@@ -20,6 +20,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; offset: Point } | null>(null);
+  const activePointerId = useRef<number | null>(null);
 
   const zoomLabel = useMemo(() => `${Math.round(scale * 100)}%`, [scale]);
 
@@ -108,6 +109,7 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
 
     event.preventDefault();
     setIsPanning(true);
+    activePointerId.current = event.pointerId;
     panStartRef.current = {
       pointerX: event.clientX,
       pointerY: event.clientY,
@@ -117,30 +119,68 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
     (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
   }
 
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    if (!isPanning || !panStartRef.current) return;
-
+  const updatePan = (clientX: number, clientY: number) => {
+    if (!panStartRef.current) return;
     const start = panStartRef.current;
-    const dx = event.clientX - start.pointerX;
-    const dy = event.clientY - start.pointerY;
+    const dx = clientX - start.pointerX;
+    const dy = clientY - start.pointerY;
 
     setOffset({
       x: start.offset.x + dx,
       y: start.offset.y + dy
     });
+  };
+
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!isPanning || !panStartRef.current) return;
+    if (activePointerId.current !== null && event.pointerId !== activePointerId.current) return;
+
+    updatePan(event.clientX, event.clientY);
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
     if (!isPanning) return;
+    if (activePointerId.current !== null && event.pointerId !== activePointerId.current) return;
 
+    endPan(event.pointerId);
+  }
+
+  function endPan(pointerId?: number) {
     setIsPanning(false);
     panStartRef.current = null;
+    activePointerId.current = null;
+    const wrapper = wrapperRef.current;
+    if (!wrapper || pointerId === undefined) return;
     try {
-      (event.currentTarget as HTMLDivElement).releasePointerCapture(event.pointerId);
+      wrapper.releasePointerCapture(pointerId);
     } catch {
       // noop
     }
   }
+
+  useEffect(() => {
+    if (!isPanning) return;
+
+    const handleMove = (event: PointerEvent) => {
+      if (activePointerId.current !== null && event.pointerId !== activePointerId.current) return;
+      updatePan(event.clientX, event.clientY);
+    };
+
+    const handleUp = (event: PointerEvent) => {
+      if (activePointerId.current !== null && event.pointerId !== activePointerId.current) return;
+      endPan(event.pointerId);
+    };
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+    };
+  }, [isPanning]);
 
   function resetView() {
     setScale(0.82);
