@@ -22,7 +22,7 @@ export default function BracketConnectors({ matches }: { matches: Match[] }) {
     const newPaths: string[] = [];
 
     function getEl(matchId: string) {
-      return board.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
+      return board?.querySelector(`.match-node[data-match-id=\"${matchId}\"]`) as HTMLElement | null;
     }
 
     for (const match of matches) {
