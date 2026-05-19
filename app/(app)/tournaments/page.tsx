@@ -13,12 +13,13 @@ import { createClient } from "@/lib/supabase/server";
 export default async function TournamentsPage({
   searchParams
 }: {
-  searchParams?: { q?: string; status?: string; format?: string };
+  searchParams?: Promise<{ q?: string; status?: string; format?: string }>;
 }) {
   const supabase = await createClient();
-  const searchQuery = typeof searchParams?.q === "string" ? searchParams.q.trim() : "";
-  const statusFilter = typeof searchParams?.status === "string" ? searchParams.status : "all";
-  const formatFilter = typeof searchParams?.format === "string" ? searchParams.format : "all";
+  const resolvedParams = await searchParams;
+  const searchQuery = typeof resolvedParams?.q === "string" ? resolvedParams.q.trim() : "";
+  const statusFilter = typeof resolvedParams?.status === "string" ? resolvedParams.status : "all";
+  const formatFilter = typeof resolvedParams?.format === "string" ? resolvedParams.format : "all";
 
   let query = supabase.from("tournaments").select("*").order("created_at", { ascending: false });
 
