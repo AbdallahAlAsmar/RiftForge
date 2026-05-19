@@ -38,10 +38,10 @@ export function BracketTree({
   const bracketSize = nextPowerOfTwo(Math.max(maxTeams, 2));
 
   // Bracket geometry tuned for real-world competitive layouts
-  const MATCH_HEIGHT = 140;
+  const MATCH_HEIGHT = 180;
   const MATCH_WIDTH = 280;
   const COLUMN_GAP = 120;
-  const BASE_VERTICAL_GAP = 36;
+  const BASE_VERTICAL_GAP = 50;
   const RIGHT_PADDING = 140;
 
   const roundPositions = (() => {
@@ -189,7 +189,7 @@ function MatchCard({
   }
 
   return (
-    <Card className="relative h-full w-full overflow-hidden border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+    <Card className="relative h-full w-full border border-cyan-400/25 bg-[#04061b]/90 shadow-[0_22px_90px_rgba(0,0,0,0.55)] backdrop-blur-sm">
       <div className="absolute inset-y-0 right-0 w-2 bg-cyan-400/95 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
       <CardHeader className="flex-row items-center justify-between border-b border-white/5 py-2">
         <CardTitle className="text-[10px] uppercase tracking-[0.5em] text-cyan-100/85">
@@ -197,7 +197,7 @@ function MatchCard({
         </CardTitle>
         <Badge className="border-white/10 bg-white/5 text-[10px] uppercase tracking-[0.25em]">{match.status}</Badge>
       </CardHeader>
-      <CardContent className="space-y-0 p-0">
+      <CardContent className="space-y-0 overflow-y-auto p-0">
         <TeamRow
           team={teamA}
           placeholder={getBracketSlotLabel(maxTeams, match.round, match.position, "A")}
