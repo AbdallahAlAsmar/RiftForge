@@ -71,7 +71,7 @@ export default function BracketConnectors({ matches }: { matches: Match[] }) {
             <feMergeNode in="coloredBlur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
-        </feMerge>
+        </filter>
       </defs>
       {paths.map((d, i) => (
         <g key={i} style={{ mixBlendMode: "screen" }}>
