@@ -259,20 +259,9 @@ export async function getSummonerLeagueRank(
   const platformRouter = platformMap[normRegion] || "euw1";
   const platformHost = `https://${platformRouter}.api.riotgames.com`;
 
-  // Step A: Get encryptedSummonerId
-  const summonerUrl = `/lol/summoner/v4/summoners/by-puuid/${puuid}`;
-  console.log(`[Riot Summoner API] Querying PUUID ${puuid} on ${platformHost}...`);
-  const summonerRes = await riotRequest<{ id: string }>(summonerUrl, {}, { retries: 3 }, platformHost);
-  console.log(`[Riot Summoner API] Response:`, summonerRes);
-
-  if (!summonerRes?.id) {
-    console.warn(`[Riot Summoner API] Failed to fetch summoner info for rank verification. Falling back to unranked.`);
-    return "unranked";
-  }
-
-  // Step B: Query League Entries
-  const leagueUrl = `/lol/league/v4/entries/by-summoner/${summonerRes.id}`;
-  console.log(`[Riot League API] Querying entries for Summoner ID ${summonerRes.id} on ${platformHost}...`);
+  // Query League Entries directly by PUUID
+  const leagueUrl = `/lol/league/v4/entries/by-puuid/${puuid}`;
+  console.log(`[Riot League API] Querying entries directly by PUUID ${puuid} on ${platformHost}...`);
   const leagueEntries = await riotRequest<Array<{ queueType: string; tier: string }>>(
     leagueUrl,
     {},
@@ -282,7 +271,7 @@ export async function getSummonerLeagueRank(
   console.log(`[Riot League API] Entries response:`, leagueEntries);
 
   if (!leagueEntries || !Array.isArray(leagueEntries)) {
-    console.warn(`[Riot League API] Failed to fetch league entries for Summoner ${summonerRes.id}. Falling back to unranked.`);
+    console.warn(`[Riot League API] Failed to fetch league entries for PUUID ${puuid}. Falling back to unranked.`);
     return "unranked";
   }
 
