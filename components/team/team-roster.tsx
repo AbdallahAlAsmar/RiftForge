@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Crown, ShieldCheck, UserMinus, UserRound } from "lucide-react";
+import { Crown, ShieldCheck, UserMinus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { promoteTeamMember, removeTeamMember } from "@/lib/actions/teams";
 import { cn } from "@/lib/utils/cn";
+import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 
 type TeamMember = {
   id: string;
@@ -17,6 +18,7 @@ type TeamMember = {
     display_name?: string | null;
     avatar_url?: string | null;
     rank?: string | null;
+    show_rank_border?: boolean;
     tsr?: number | null;
   } | null;
 };
@@ -150,9 +152,13 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-md bg-secondary">
-                      <UserRound className="h-4 w-4" />
-                    </div>
+                    <RankAvatar
+                      rank={profile?.rank}
+                      src={profile?.avatar_url}
+                      alt={displayName}
+                      showBorder={profile?.show_rank_border}
+                      className="h-11 w-11"
+                    />
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium">{displayName}</p>
@@ -163,7 +169,7 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
                         ) : null}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {member.role ?? "role TBD"} - {profile?.rank ?? "unranked"}
+                        {member.role ?? "role TBD"} - <RankLabel rank={profile?.rank} className="gap-1" iconClassName="h-3.5 w-3.5" />
                       </p>
                     </div>
                   </div>

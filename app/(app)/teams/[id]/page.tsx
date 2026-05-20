@@ -17,7 +17,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
     supabase.from("teams").select("*").eq("id", id).single(),
     supabase
       .from("team_members")
-      .select("id, role, is_captain, users(id, display_name, avatar_url, rank, tsr)")
+      .select("id, role, is_captain, users(id, display_name, avatar_url, rank, show_rank_border, tsr)")
       .eq("team_id", id),
     user ? supabase.from("friends").select("*").or(`user_id.eq.${user.id},friend_id.eq.${user.id}`) : Promise.resolve({ data: [] })
   ]);
@@ -31,7 +31,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
     if (relatedUserIds.length > 0) {
       const { data: usersData } = await supabase
         .from("users")
-        .select("id, display_name, avatar_url, region, rank, tsr")
+        .select("id, display_name, avatar_url, region, rank, show_rank_border, tsr")
         .in("id", relatedUserIds);
       
       const acceptedFriends = friendsData.filter((f: any) => f.status === "accepted");

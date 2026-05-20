@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { RankLabel } from "@/components/profile/rank-visuals";
 
 type Profile = {
   display_name: string | null;
   region: string;
   rank: string | null;
+  show_rank_border: boolean;
   tsr: number;
   preferred_roles: string[];
 };
@@ -33,10 +35,8 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         </div>
         <div>
           <Label className="text-xs uppercase tracking-widest text-muted-foreground">League Rank</Label>
-          <p className="text-sm font-bold text-white mt-1">
-            {profile.rank
-              ? profile.rank.toUpperCase()
-              : "Riot Account Not Linked"}
+          <p className="mt-1 text-sm font-bold text-white">
+            {profile.rank ? <RankLabel rank={profile.rank} /> : "Riot Account Not Linked"}
           </p>
         </div>
       </div>
@@ -66,6 +66,22 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           ))}
         </div>
       </div>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm interactive-surface">
+        <input
+          type="checkbox"
+          name="showRankBorder"
+          defaultChecked={profile.show_rank_border}
+          className="mt-1 accent-primary"
+        />
+        <span>
+          <span className="block font-medium text-foreground">Show rank border on my avatar</span>
+          <span className="block text-xs text-muted-foreground">
+            Display the rank wing border everywhere your profile picture appears.
+          </span>
+        </span>
+      </label>
+
       {state.message ? (
         <p className={state.ok ? "text-sm text-primary" : "text-sm text-destructive"}>{state.message}</p>
       ) : null}

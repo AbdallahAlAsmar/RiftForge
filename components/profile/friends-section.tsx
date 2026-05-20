@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserRound, Check, X, UserPlus, Search, Loader2 } from "lucide-react";
+import { Check, X, UserPlus, Search, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 import { searchUsers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend } from "@/lib/actions/friends";
 
-type Profile = { id: string; display_name: string | null; avatar_url: string | null; region: string; rank: string | null; tsr: number };
+type Profile = { id: string; display_name: string | null; avatar_url: string | null; region: string; rank: string | null; show_rank_border: boolean; tsr: number };
 type FriendData = {
   id: string;
   status: "pending" | "accepted";
@@ -128,16 +129,18 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                 return (
                   <div key={user.id} className="flex items-center justify-between rounded-md p-2 hover:bg-secondary/50">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
-                        {user.avatar_url ? (
-                          <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-md object-cover" />
-                        ) : (
-                          <UserRound className="h-4 w-4" />
-                        )}
-                      </div>
+                      <RankAvatar
+                        rank={user.rank}
+                        src={user.avatar_url}
+                        alt={user.display_name ?? "Player"}
+                        showBorder={user.show_rank_border}
+                        className="h-8 w-8"
+                      />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{user.display_name}</span>
-                        <span className="text-xs text-muted-foreground">{user.rank ?? "unranked"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          <RankLabel rank={user.rank} className="gap-1" iconClassName="h-3.5 w-3.5" />
+                        </span>
                       </div>
                     </div>
                     {isFriend ? (
@@ -171,12 +174,19 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
             {pendingRequests.map(req => (
               <div key={req.id} className="flex items-center justify-between rounded-md border p-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
-                    <UserRound className="h-5 w-5" />
-                  </div>
+                  <RankAvatar
+                    rank={req.profile?.rank}
+                    src={req.profile?.avatar_url}
+                    alt={req.profile?.display_name ?? "Player"}
+                    showBorder={req.profile?.show_rank_border}
+                    className="h-10 w-10"
+                  />
                   <div className="flex flex-col">
                     <span className="font-medium">{req.profile?.display_name ?? "Unknown"}</span>
-                    <span className="text-xs text-muted-foreground">Wants to be your friend</span>
+                    <span className="text-xs text-muted-foreground">
+                      <RankLabel rank={req.profile?.rank} className="gap-1" iconClassName="h-3.5 w-3.5" />
+                      <span className="ml-2">Wants to be your friend</span>
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -217,16 +227,18 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
             acceptedFriends.map(friend => (
               <div key={friend.id} className="flex items-center justify-between rounded-md border p-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
-                    {friend.profile?.avatar_url ? (
-                      <img src={friend.profile.avatar_url} alt="" className="h-10 w-10 rounded-md object-cover" />
-                    ) : (
-                      <UserRound className="h-5 w-5" />
-                    )}
-                  </div>
+                  <RankAvatar
+                    rank={friend.profile?.rank}
+                    src={friend.profile?.avatar_url}
+                    alt={friend.profile?.display_name ?? "Player"}
+                    showBorder={friend.profile?.show_rank_border}
+                    className="h-10 w-10"
+                  />
                   <div className="flex flex-col">
                     <span className="font-medium">{friend.profile?.display_name ?? "Unknown"}</span>
-                    <span className="text-xs text-muted-foreground">{friend.profile?.rank ?? "unranked"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      <RankLabel rank={friend.profile?.rank} className="gap-1" iconClassName="h-3.5 w-3.5" />
+                    </span>
                   </div>
                 </div>
                 <Button

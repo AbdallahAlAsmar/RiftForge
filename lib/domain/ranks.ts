@@ -20,6 +20,16 @@ export function tsrForRank(rank: string | null | undefined) {
   return normalized && normalized in rankTsr ? rankTsr[normalized] : rankTsr.silver;
 }
 
+export function normalizeRank(rank: string | null | undefined): Rank | null {
+  if (!rank) return null;
+
+  const normalized = rank.trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (normalized === "grand") return "grandmaster";
+  if (normalized in rankTsr) return normalized as Rank;
+
+  return null;
+}
+
 export function rankLabel(rank: string | null | undefined) {
   if (!rank) return "Unranked";
   return rank.charAt(0).toUpperCase() + rank.slice(1).toLowerCase();

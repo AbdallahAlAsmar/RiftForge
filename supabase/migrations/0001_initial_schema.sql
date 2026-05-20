@@ -25,6 +25,7 @@ create table public.users (
   avatar_url text,
   region text not null default 'EUW',
   rank text,
+  show_rank_border boolean not null default true,
   tsr integer not null default 300 check (tsr >= 0),
   preferred_roles text[] not null default '{}',
   created_at timestamptz not null default now(),

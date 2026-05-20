@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, History, Link2, MessageCircle, Shield, Sparkles, Swords, UserRound } from "lucide-react";
+import { Activity, History, Link2, MessageCircle, Shield, Sparkles, Swords } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { ProfileForm } from "@/components/team/profile-form";
 import { FriendsSection } from "@/components/profile/friends-section";
 import { AnalyticsCharts } from "@/components/profile/analytics-charts";
 import { RiotVerificationClient } from "@/components/profile/riot-verification-client";
+import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,7 +41,7 @@ export default async function ProfilePage() {
   if (relatedUserIds.length > 0) {
     const { data: usersData } = await supabase
       .from("users")
-      .select("id, display_name, avatar_url, region, rank, tsr")
+      .select("id, display_name, avatar_url, region, rank, show_rank_border, tsr")
       .in("id", relatedUserIds);
     if (usersData) {
       for (const u of usersData) relatedProfiles[u.id] = u;
@@ -75,18 +76,19 @@ export default async function ProfilePage() {
           <LiveBackdrop />
           <Card className="relative border-0 bg-transparent shadow-none">
             <CardHeader className="items-start text-left">
-              <div className="glass-panel flex h-20 w-20 items-center justify-center rounded-md">
-                {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-md object-cover" />
-                ) : (
-                  <UserRound className="h-8 w-8 text-muted-foreground" />
-                )}
-              </div>
+              <RankAvatar
+                rank={profile.rank}
+                src={profile.avatar_url}
+                alt={profile.display_name ?? "Player"}
+                showBorder={profile.show_rank_border}
+                className="h-20 w-20"
+              />
               <CardTitle>{profile.display_name ?? "Player"}</CardTitle>
               <div className="flex gap-2">
                 <Badge>{profile.region}</Badge>
-                <Badge>{profile.rank ?? "unranked"}</Badge>
+                <Badge>
+                  <RankLabel rank={profile.rank} />
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm">

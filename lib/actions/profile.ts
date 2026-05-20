@@ -10,14 +10,16 @@ import { formString, formStringArray } from "./common";
 
 const profileSchema = z.object({
   displayName: z.string().min(2).max(60),
-  preferredRoles: z.array(z.string()).max(5)
+  preferredRoles: z.array(z.string()).max(5),
+  showRankBorder: z.boolean()
 });
 
 export async function updateProfile(_: unknown, formData: FormData) {
   const user = await requireUser();
   const parsed = profileSchema.safeParse({
     displayName: formString(formData, "displayName"),
-    preferredRoles: formStringArray(formData, "preferredRoles")
+    preferredRoles: formStringArray(formData, "preferredRoles"),
+    showRankBorder: formData.get("showRankBorder") === "on"
   });
 
   if (!parsed.success) {
@@ -29,13 +31,18 @@ export async function updateProfile(_: unknown, formData: FormData) {
     .from("users")
     .update({
       display_name: parsed.data.displayName,
-      preferred_roles: parsed.data.preferredRoles
+      preferred_roles: parsed.data.preferredRoles,
+      show_rank_border: parsed.data.showRankBorder
     })
     .eq("id", user.id);
 
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/profile");
+  revalidatePath("/teams");
+  revalidatePath("/teams/[id]");
+  revalidatePath("/tournaments");
+  revalidatePath("/tournaments/[id]");
   return { ok: true, message: "Profile updated." };
 }
 

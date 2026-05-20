@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { UserRound, Loader2, Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 
 type FriendData = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
   rank: string | null;
+  show_rank_border: boolean;
   tsr: number;
 };
 
@@ -42,16 +44,18 @@ export function InviteFriendSection({ teamId, friends }: { teamId: string; frien
           friends.map(friend => (
             <div key={friend.id} className="flex items-center justify-between rounded-md border p-3 hover:bg-secondary/50">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
-                  {friend.avatar_url ? (
-                    <img src={friend.avatar_url} alt="" className="h-8 w-8 rounded-md object-cover" />
-                  ) : (
-                    <UserRound className="h-4 w-4" />
-                  )}
-                </div>
+                  <RankAvatar
+                    rank={friend.rank}
+                    src={friend.avatar_url}
+                    alt={friend.display_name ?? "Player"}
+                    showBorder={friend.show_rank_border}
+                    className="h-8 w-8"
+                  />
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{friend.display_name}</span>
-                  <span className="text-xs text-muted-foreground">{friend.rank ?? "unranked"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      <RankLabel rank={friend.rank} className="gap-1" iconClassName="h-3.5 w-3.5" />
+                    </span>
                 </div>
               </div>
               <Button

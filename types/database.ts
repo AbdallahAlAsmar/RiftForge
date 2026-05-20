@@ -13,6 +13,7 @@ export type UserRow = {
   avatar_url: string | null;
   region: string;
   rank: string | null;
+  show_rank_border: boolean;
   tsr: number;
   preferred_roles: string[];
   created_at: string;

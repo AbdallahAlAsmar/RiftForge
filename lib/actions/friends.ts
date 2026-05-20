@@ -13,7 +13,7 @@ export async function searchUsers(query: string) {
   // Search by display_name in users table
   const { data, error } = await supabase
     .from("users")
-    .select("id, display_name, avatar_url, region, rank, tsr")
+    .select("id, display_name, avatar_url, region, rank, show_rank_border, tsr")
     .ilike("display_name", `%${query}%`)
     .neq("id", user.id)
     .limit(10);
