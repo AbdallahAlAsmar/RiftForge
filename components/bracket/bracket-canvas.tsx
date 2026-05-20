@@ -316,14 +316,17 @@ export function BracketCanvas({ children }: { children: ReactNode }) {
       <div
         ref={wrapperRef}
         className={cn(
-          "relative min-h-[360px] touch-none select-none overflow-hidden rounded-[28px] border border-white/20 bg-[#0A0A0A] shadow-[0_40px_120px_rgba(0,0,0,0.65)]",
-          isPanning ? "cursor-grabbing" : "cursor-grab"
+          "relative min-h-[360px] touch-none select-none overflow-hidden rounded-[28px] border bg-[#0A0A0A] shadow-[0_40px_120px_rgba(0,0,0,0.65)] transition-all duration-300",
+          isPanning 
+            ? "cursor-grabbing border-primary/60 shadow-[0_0_40px_rgba(255,59,59,0.3)] ring-1 ring-primary/30" 
+            : "cursor-grab border-white/20"
         )}
         style={wrapperHeight ? { height: wrapperHeight } : undefined}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onDoubleClick={resetView}
       >
         {/* Background decorations */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(255,59,59,0.15),transparent_18%),radial-gradient(circle_at_88%_20%,rgba(255,59,59,0.08),transparent_24%),linear-gradient(90deg,#1a1a1a_0%,#0A0A0A_35%,#1a1a1a_72%,#141414_100%)]" />

@@ -71,7 +71,9 @@ export async function createTournament(_: unknown, formData: FormData) {
     maxRank: formString(formData, "maxRank") || null,
     startsAt: formString(formData, "startsAt") || null,
     checkInStartsAt: formString(formData, "checkInStartsAt") || null,
-    checkInEndsAt: formString(formData, "checkInEndsAt") || null
+    checkInEndsAt: formString(formData, "checkInEndsAt") || null,
+    region: formString(formData, "region") || "EUW",
+    mapType: formString(formData, "mapType") || "SUMMONERS_RIFT"
   });
 
   if (!parsed.success) {
@@ -133,7 +135,9 @@ export async function createTournament(_: unknown, formData: FormData) {
       max_rank: parsed.data.maxRank || null,
       starts_at: parsed.data.startsAt || null,
       check_in_starts_at: parsed.data.checkInStartsAt || null,
-      check_in_ends_at: parsed.data.checkInEndsAt || null
+      check_in_ends_at: parsed.data.checkInEndsAt || null,
+      region: parsed.data.region || "EUW",
+      map_type: parsed.data.mapType || "SUMMONERS_RIFT"
     })
     .select("id")
     .single();

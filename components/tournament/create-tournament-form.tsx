@@ -20,6 +20,8 @@ export function CreateTournamentForm() {
   const [maxTeams, setMaxTeams] = useState(8);
   const [format, setFormat] = useState("single_elimination");
   const [teamSize, setTeamSize] = useState("5");
+  const [region, setRegion] = useState("EUW");
+  const [mapType, setMapType] = useState("SUMMONERS_RIFT");
   const [minRank, setMinRank] = useState("");
   const [maxRank, setMaxRank] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -62,6 +64,31 @@ export function CreateTournamentForm() {
               <option value="2">2v2</option>
               <option value="5">5v5</option>
             </Select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="region">Riot Region</Label>
+              <Select id="region" name="region" value={region} onChange={(e) => setRegion(e.target.value)}>
+                <option value="EUW">Europe West (EUW)</option>
+                <option value="EUNE">Europe Nordic & East (EUNE)</option>
+                <option value="NA">North America (NA)</option>
+                <option value="KR">Korea (KR)</option>
+                <option value="BR">Brazil (BR)</option>
+                <option value="LAN">Latin America North (LAN)</option>
+                <option value="LAS">Latin America South (LAS)</option>
+                <option value="OCE">Oceania (OCE)</option>
+                <option value="TR">Turkey (TR)</option>
+                <option value="RU">Russia (RU)</option>
+                <option value="JP">Japan (JP)</option>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="mapType">Arena Map</Label>
+              <Select id="mapType" name="mapType" value={mapType} onChange={(e) => setMapType(e.target.value)}>
+                <option value="SUMMONERS_RIFT">Summoner's Rift</option>
+                <option value="HOWLING_ABYSS">Howling Abyss (ARAM)</option>
+              </Select>
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
@@ -116,6 +143,8 @@ export function CreateTournamentForm() {
                 setMaxTeams(8);
                 setFormat("single_elimination");
                 setTeamSize("5");
+                setRegion("EUW");
+                setMapType("SUMMONERS_RIFT");
                 setMinRank("");
                 setMaxRank("");
                 setStartsAt("");

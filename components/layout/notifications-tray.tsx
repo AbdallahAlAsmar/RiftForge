@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { acceptFriendRequest, declineFriendRequest } from "@/lib/actions/friends";
 import { acceptTeamInvite, declineTeamInvite } from "@/lib/actions/teams";
+import { createClient } from "@/lib/supabase/browser";
 
 type FriendNotification = {
   id: string;
@@ -37,8 +38,11 @@ export function NotificationsTray({ notifications }: NotificationsTrayProps) {
   const trayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const visibleFriends = notifications.friends.filter((item) => !dismissedIds.has(item.id));
-  const visibleInvites = notifications.invites.filter((item) => !dismissedIds.has(item.id));
+  const [friendsList, setFriendsList] = useState<FriendNotification[]>(notifications.friends);
+  const [invitesList, setInvitesList] = useState<TeamInviteNotification[]>(notifications.invites);
+
+  const visibleFriends = friendsList.filter((item) => !dismissedIds.has(item.id));
+  const visibleInvites = invitesList.filter((item) => !dismissedIds.has(item.id));
   const total = visibleFriends.length + visibleInvites.length;
 
   const dedupedInvites = useMemo(() => {
@@ -50,6 +54,124 @@ export function NotificationsTray({ notifications }: NotificationsTrayProps) {
       return true;
     });
   }, [visibleInvites]);
+
+  useEffect(() => {
+    setFriendsList(notifications.friends);
+    setInvitesList(notifications.invites);
+  }, [notifications]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let isSubscribed = true;
+    let userId: string | null = null;
+    let friendsChannel: any = null;
+    let invitesChannel: any = null;
+
+    async function initRealtime() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !isSubscribed) return;
+      userId = user.id;
+
+      friendsChannel = supabase
+        .channel("realtime_friends_tray")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "friends"
+          },
+          async (payload) => {
+            if (!isSubscribed) return;
+            if (payload.eventType === "INSERT") {
+              const newRow = payload.new;
+              if (newRow.friend_id === userId && newRow.status === "pending") {
+                const { data: u } = await supabase
+                  .from("users")
+                  .select("id, display_name, avatar_url")
+                  .eq("id", newRow.user_id)
+                  .single();
+
+                if (u && isSubscribed) {
+                  setFriendsList((prev) => [
+                    ...prev.filter((item) => item.id !== newRow.id),
+                    {
+                      id: newRow.id,
+                      users: {
+                        display_name: u.display_name
+                      }
+                    }
+                  ]);
+                }
+              }
+            } else if (payload.eventType === "UPDATE") {
+              const newRow = payload.new;
+              if (newRow.status !== "pending") {
+                setFriendsList((prev) => prev.filter((item) => item.id !== newRow.id));
+              }
+            } else if (payload.eventType === "DELETE") {
+              const oldRow = payload.old;
+              setFriendsList((prev) => prev.filter((item) => item.id !== oldRow.id));
+            }
+          }
+        )
+        .subscribe();
+
+      invitesChannel = supabase
+        .channel("realtime_invites_tray")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "invites"
+          },
+          async (payload) => {
+            if (!isSubscribed) return;
+            if (payload.eventType === "INSERT") {
+              const newRow = payload.new;
+              if (newRow.invited_user_id === userId && newRow.status === "pending") {
+                const { data: t } = await supabase
+                  .from("teams")
+                  .select("id, name, logo_url")
+                  .eq("id", newRow.team_id)
+                  .single();
+
+                if (t && isSubscribed) {
+                  setInvitesList((prev) => [
+                    ...prev.filter((item) => item.id !== newRow.id),
+                    {
+                      id: newRow.id,
+                      teams: {
+                        id: t.id,
+                        name: t.name
+                      }
+                    }
+                  ]);
+                }
+              }
+            } else if (payload.eventType === "UPDATE") {
+              const newRow = payload.new;
+              if (newRow.status !== "pending") {
+                setInvitesList((prev) => prev.filter((item) => item.id !== newRow.id));
+              }
+            } else if (payload.eventType === "DELETE") {
+              const oldRow = payload.old;
+              setInvitesList((prev) => prev.filter((item) => item.id !== oldRow.id));
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    initRealtime();
+
+    return () => {
+      isSubscribed = false;
+      if (friendsChannel) supabase.removeChannel(friendsChannel);
+      if (invitesChannel) supabase.removeChannel(invitesChannel);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

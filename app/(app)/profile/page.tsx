@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Float, HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reveal";
 import { ProfileForm } from "@/components/team/profile-form";
 import { FriendsSection } from "@/components/profile/friends-section";
+import { AnalyticsCharts } from "@/components/profile/analytics-charts";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -126,6 +127,23 @@ export default async function ProfilePage() {
       </aside>
 
       <section className="space-y-4">
+        <Reveal>
+          <Card className="interactive-surface bg-card/95 p-5">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="flex items-center gap-2 text-xl font-black">
+                <Activity className="h-5 w-5 text-primary" /> Performance & Queue Calibration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <AnalyticsCharts
+                currentTsr={profile.tsr}
+                preferredRoles={profile.preferred_roles || []}
+                historyCount={tournaments?.length || 0}
+              />
+            </CardContent>
+          </Card>
+        </Reveal>
+
         <Reveal>
           <Card className="interactive-surface border-primary/25">
             <CardHeader>

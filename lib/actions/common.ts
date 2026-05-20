@@ -98,5 +98,7 @@ export const tournamentSchema = z.object({
   maxRank: z.string().optional(),
   startsAt: z.string().optional(),
   checkInStartsAt: z.string().optional(),
-  checkInEndsAt: z.string().optional()
+  checkInEndsAt: z.string().optional(),
+  region: z.string().optional(),
+  mapType: z.string().optional()
 });

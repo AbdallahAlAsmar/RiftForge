@@ -46,6 +46,8 @@ export type TournamentRow = {
   starts_at: string | null;
   check_in_starts_at: string | null;
   check_in_ends_at: string | null;
+  region: string;
+  map_type: string;
   created_at: string;
   updated_at: string;
 };
@@ -123,6 +125,7 @@ export type MatchRow = {
   winner_team_id: string | null;
   status: "pending" | "ready" | "reported" | "confirmed";
   next_match_id: string | null;
+  tournament_code: string | null;
   created_at: string;
   updated_at: string;
 };

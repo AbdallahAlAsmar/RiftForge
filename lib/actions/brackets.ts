@@ -77,10 +77,29 @@ export async function syncBracketSeeding(tournamentId: string) {
       .eq("id", match.id);
   }
 
-  for (let index = 0; index < rankedTeams.length && index < slotOrder.length; index += 1) {
+  // Recursive standard tournament seeding tree generator (e.g. [1, 8, 4, 5, 2, 7, 3, 6])
+  function getStandardSeeding(n: number): number[] {
+    if (n <= 2) return [1, 2];
+    const half = getStandardSeeding(n / 2);
+    const result: number[] = [];
+    for (const seed of half) {
+      result.push(seed, n - seed + 1);
+    }
+    return result;
+  }
+
+  const totalSlots = slotOrder.length;
+  const seedingSize = Math.pow(2, Math.ceil(Math.log2(Math.max(2, totalSlots))));
+  const seedingOrder = getStandardSeeding(seedingSize);
+
+  for (let index = 0; index < slotOrder.length; index += 1) {
     const slot = slotOrder[index];
-    const team = rankedTeams[index];
-    await admin.from("matches").update({ [slot.side]: team.id }).eq("id", slot.matchId);
+    const seed = seedingOrder[index] ?? (index + 1);
+    const team = rankedTeams[seed - 1];
+
+    if (team) {
+      await admin.from("matches").update({ [slot.side]: team.id }).eq("id", slot.matchId);
+    }
   }
 
   for (const match of firstRoundMatches) {
