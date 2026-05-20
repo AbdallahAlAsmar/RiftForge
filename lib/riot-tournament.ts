@@ -263,8 +263,8 @@ export async function getSummonerLeagueRank(
   const summonerUrl = `/lol/summoner/v4/summoners/by-puuid/${puuid}`;
   const summonerRes = await riotRequest<{ id: string }>(summonerUrl, {}, { retries: 3 }, platformHost);
   if (!summonerRes?.id) {
-    console.warn(`[Riot Summoner API] Failed to fetch summoner info for rank verification. Falling back to silver.`);
-    return "silver";
+    console.warn(`[Riot Summoner API] Failed to fetch summoner info for rank verification. Falling back to unranked.`);
+    return "unranked";
   }
 
   // Step B: Query League Entries
@@ -277,8 +277,8 @@ export async function getSummonerLeagueRank(
   );
 
   if (!leagueEntries || !Array.isArray(leagueEntries)) {
-    console.warn(`[Riot League API] Failed to fetch league entries for Summoner ${summonerRes.id}. Falling back to silver.`);
-    return "silver";
+    console.warn(`[Riot League API] Failed to fetch league entries for Summoner ${summonerRes.id}. Falling back to unranked.`);
+    return "unranked";
   }
 
   // Look for Solo/Duo rank first, fallback to Flex rank, fallback to first entry
@@ -287,7 +287,7 @@ export async function getSummonerLeagueRank(
   const activeEntry = soloEntry || flexEntry || leagueEntries[0];
 
   if (!activeEntry?.tier) {
-    return "silver"; // Default rank if unranked or no entries found
+    return "unranked"; // Default rank if unranked or no entries found
   }
 
   return activeEntry.tier.toLowerCase();

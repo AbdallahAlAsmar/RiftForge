@@ -143,7 +143,7 @@ export async function completeRiotVerification() {
 
     // Automatically synchronize the user's primary region, rank, and TSR from their verified Riot account
     const fetchedRank = await getSummonerLeagueRank(puuid, pending.region);
-    const resolvedRank = fetchedRank || "silver";
+    const resolvedRank = fetchedRank || "unranked";
     const resolvedTsr = tsrForRank(resolvedRank);
 
     await admin
