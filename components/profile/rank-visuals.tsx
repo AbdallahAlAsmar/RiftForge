@@ -87,12 +87,12 @@ export function RankAvatar({
           className="
             pointer-events-none
             absolute
-            inset-0
+            inset-[-4%]
             z-20
-            h-full
-            w-full
+            h-[108%]
+            w-[108%]
             object-contain
-            scale-[1.08]
+            scale-[1.22]
           "
         />
       ) : null}
