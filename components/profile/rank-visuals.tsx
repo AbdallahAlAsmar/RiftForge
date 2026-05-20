@@ -73,20 +73,23 @@ export function RankAvatar({
   const borderAsset = showBorder && assets ? assets.wing : null;
 
   return (
-    <div className={cn("relative inline-flex shrink-0 items-center justify-center rounded-md", className)}>
+    <div className={cn("relative inline-flex shrink-0 items-center justify-center aspect-square rounded-full", className)}>
       {borderAsset ? (
         <Image
           src={borderAsset}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-[-10%] h-[120%] w-[120%] object-contain"
+          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
         />
       ) : null}
-      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[inherit] bg-secondary">
+      <div className="absolute inset-[16%] overflow-hidden rounded-full bg-secondary">
         {src ? (
-          <Image src={src} alt={alt} fill sizes="96px" className={cn("object-cover", imageClassName)} />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={alt} className={cn("h-full w-full object-cover", imageClassName)} />
         ) : (
-          <UserRound className="h-1/2 w-1/2 text-muted-foreground" />
+          <div className="flex h-full w-full items-center justify-center">
+            <UserRound className="h-1/2 w-1/2 text-muted-foreground" />
+          </div>
         )}
       </div>
     </div>
