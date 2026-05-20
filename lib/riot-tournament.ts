@@ -227,3 +227,68 @@ export async function getSummonerProfileIconId(
     profileIconId: summonerRes.profileIconId
   };
 }
+
+/**
+ * 6. Get Summoner League Rank
+ * Calls Summoner-v4 and League-v4 to fetch summoner's current solo queue tier rank.
+ */
+export async function getSummonerLeagueRank(
+  puuid: string,
+  region: string
+): Promise<string | null> {
+  const normRegion = region.toUpperCase();
+
+  if (MOCK_ENABLED) {
+    console.log(`[Riot API Mock] getSummonerLeagueRank for PUUID: ${puuid} (${normRegion})`);
+    return "diamond"; // Emulate Diamond rank in mock mode
+  }
+
+  const platformMap: Record<string, string> = {
+    EUW: "euw1",
+    EUNE: "eun1",
+    NA: "na1",
+    KR: "kr",
+    BR: "br1",
+    LAN: "la1",
+    LAS: "la2",
+    OCE: "oc1",
+    TR: "tr1",
+    RU: "ru",
+    JP: "jp1"
+  };
+  const platformRouter = platformMap[normRegion] || "euw1";
+  const platformHost = `https://${platformRouter}.api.riotgames.com`;
+
+  // Step A: Get encryptedSummonerId
+  const summonerUrl = `/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+  const summonerRes = await riotRequest<{ id: string }>(summonerUrl, {}, { retries: 3 }, platformHost);
+  if (!summonerRes?.id) {
+    console.warn(`[Riot Summoner API] Failed to fetch summoner info for rank verification.`);
+    return null;
+  }
+
+  // Step B: Query League Entries
+  const leagueUrl = `/lol/league/v4/entries/by-summoner/${summonerRes.id}`;
+  const leagueEntries = await riotRequest<Array<{ queueType: string; tier: string }>>(
+    leagueUrl,
+    {},
+    { retries: 3 },
+    platformHost
+  );
+
+  if (!leagueEntries || !Array.isArray(leagueEntries)) {
+    console.warn(`[Riot League API] Failed to fetch league entries for Summoner ${summonerRes.id}`);
+    return null;
+  }
+
+  // Look for Solo/Duo rank first, fallback to Flex rank, fallback to first entry
+  const soloEntry = leagueEntries.find((e) => e.queueType === "RANKED_SOLO_5x5");
+  const flexEntry = leagueEntries.find((e) => e.queueType === "RANKED_FLEX_5x5");
+  const activeEntry = soloEntry || flexEntry || leagueEntries[0];
+
+  if (!activeEntry?.tier) {
+    return "silver"; // Default rank if unranked or no entries found
+  }
+
+  return activeEntry.tier.toLowerCase();
+}

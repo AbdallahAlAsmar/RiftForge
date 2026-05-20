@@ -5,72 +5,47 @@ import { updateProfile } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type Profile = {
   display_name: string | null;
   region: string;
   rank: string | null;
+  tsr: number;
   preferred_roles: string[];
 };
 
 const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
-const ranks = ["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "challenger"];
-const regions = [
-  { value: "EUW", label: "Europe West" },
-  { value: "NA", label: "North America" },
-  { value: "ME", label: "Middle East" },
-  { value: "EUNE", label: "Europe Nordic & East" },
-  { value: "OCE", label: "Oceania" }
-];
 const initialState = { ok: true, message: "" };
-
-function normalizeRegion(value: string) {
-  const upper = value.trim().toUpperCase();
-  const aliases: Record<string, string> = {
-    "EUROPE WEST": "EUW",
-    "NORTH AMERICA": "NA",
-    "MIDDLE EAST": "ME",
-    "EUROPE NORDIC & EAST": "EUNE",
-    "OCEANIA": "OCE"
-  };
-
-  return aliases[upper] ?? upper;
-}
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const [state, action] = useActionState(updateProfile, initialState);
-  const regionValue = normalizeRegion(profile.region || "EUW");
 
   return (
     <form action={action} className="grid gap-4">
+      {/* Read-Only Verified Riot Metadata */}
+      <div className="grid gap-4 sm:grid-cols-2 rounded-md border border-white/5 bg-white/[0.01] p-3.5">
+        <div>
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">League Region</Label>
+          <p className="text-sm font-bold text-white mt-1">
+            {profile.region ? profile.region.toUpperCase() : "Riot Account Not Linked"}
+          </p>
+        </div>
+        <div>
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">League Rank</Label>
+          <p className="text-sm font-bold text-white mt-1">
+            {profile.rank
+              ? `${profile.rank.toUpperCase()} (${profile.tsr ?? 300} TSR)`
+              : "Riot Account Not Linked"}
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="displayName">Display name</Label>
         <Input id="displayName" name="displayName" defaultValue={profile.display_name ?? ""} required />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="region">Region</Label>
-          <Select id="region" name="region" defaultValue={regionValue}>
-            {regions.map((region) => (
-              <option key={region.value} value={region.value}>
-                {region.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="rank">Rank</Label>
-          <Select id="rank" name="rank" defaultValue={profile.rank ?? "silver"}>
-            {ranks.map((rank) => (
-              <option key={rank} value={rank}>
-                {rank}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
+
       <div className="grid gap-2">
         <Label>Preferred roles</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

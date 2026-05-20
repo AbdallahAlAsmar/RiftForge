@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/session";
-import { getSummonerProfileIconId } from "@/lib/riot-tournament";
+import { getSummonerProfileIconId, getSummonerLeagueRank } from "@/lib/riot-tournament";
+import { tsrForRank } from "@/lib/domain/ranks";
 import { formString } from "./common";
 
 // Predefined set of common starter profile icons that all LoL accounts possess
@@ -140,8 +141,19 @@ export async function completeRiotVerification() {
       return { ok: false, message: insertError.message };
     }
 
-    // Automatically synchronize the user's primary region to match their verified Riot region
-    await admin.from("users").update({ region: pending.region }).eq("id", user.id);
+    // Automatically synchronize the user's primary region, rank, and TSR from their verified Riot account
+    const fetchedRank = await getSummonerLeagueRank(puuid, pending.region);
+    const resolvedRank = fetchedRank || "silver";
+    const resolvedTsr = tsrForRank(resolvedRank);
+
+    await admin
+      .from("users")
+      .update({
+        region: pending.region,
+        rank: resolvedRank,
+        tsr: resolvedTsr
+      })
+      .eq("id", user.id);
 
     // Delete verification record
     await admin.from("riot_verifications").delete().eq("user_id", user.id);
@@ -172,6 +184,67 @@ export async function cancelRiotVerification() {
     return { ok: true, message: "Verification request cancelled." };
   } catch (err: any) {
     console.error("[Cancel Verification Exception]", err);
+    return { ok: false, message: err.message };
+  }
+}
+
+/**
+ * 4. Sync Riot Stats
+ * Queries active Riot account from db, fetches current rank from Riot API, and updates users table.
+ */
+export async function syncRiotStats() {
+  try {
+    const user = await requireUser();
+    const admin = createAdminClient();
+
+    // 1. Get linked account
+    const { data: riotAccount, error: fetchError } = await admin
+      .from("riot_accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (fetchError || !riotAccount) {
+      return { ok: false, message: "No linked Riot account found. Please link your account first." };
+    }
+
+    // 2. Fetch fresh rank from Riot API
+    const freshRank = await getSummonerLeagueRank(riotAccount.puuid, riotAccount.region);
+    if (!freshRank) {
+      return { ok: false, message: "Could not fetch fresh rank details from Riot API." };
+    }
+
+    const tsr = tsrForRank(freshRank);
+
+    // 3. Update the user
+    await admin
+      .from("users")
+      .update({
+        rank: freshRank,
+        tsr: tsr
+      })
+      .eq("id", user.id);
+
+    // 4. Update the profile icon in the riot_accounts table if we fetched it too
+    const summonerInfo = await getSummonerProfileIconId(
+      riotAccount.game_name,
+      riotAccount.tag_line,
+      riotAccount.region
+    );
+
+    if (summonerInfo) {
+      const isMock = !process.env.RIOT_API_KEY || process.env.RIOT_DEV_MOCK === "true";
+      const iconUrl = `http://ddragon.leagueoflegends.com/cdn/13.24.1/img/profileicon/${isMock ? 28 : summonerInfo.profileIconId}.png`;
+      await admin
+        .from("riot_accounts")
+        .update({ profile_icon_url: iconUrl })
+        .eq("user_id", user.id);
+    }
+
+    revalidatePath("/profile");
+    return { ok: true, message: `Successfully synchronized rank: ${freshRank.toUpperCase()} (${tsr} TSR)` };
+  } catch (err: any) {
+    console.error("[Sync Stats Exception]", err);
     return { ok: false, message: err.message };
   }
 }

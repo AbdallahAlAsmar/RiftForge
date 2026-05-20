@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { startRiotVerification, completeRiotVerification, cancelRiotVerification } from "@/lib/actions/riot-verification";
+import { startRiotVerification, completeRiotVerification, cancelRiotVerification, syncRiotStats } from "@/lib/actions/riot-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { Info, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 
 interface RiotVerificationClientProps {
   riotAccount: any;
@@ -25,39 +25,91 @@ export function RiotVerificationClient({
   const [startState, startAction] = useActionState(startRiotVerification, { ok: true, message: "" });
   const [isPendingComplete, startCompleteTransition] = useTransition();
   const [isPendingCancel, startCancelTransition] = useTransition();
+  const [isPendingSync, startSyncTransition] = useTransition();
   const [completeMsg, setCompleteMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [riotId, setRiotId] = useState("");
   const [region, setRegion] = useState("EUW");
 
   // 1. Linked State
   if (riotAccount) {
+    const handleSync = () => {
+      setSyncMsg(null);
+      startSyncTransition(async () => {
+        const res = await syncRiotStats();
+        if (res.ok) {
+          setSyncMsg({ ok: true, text: res.message });
+        } else {
+          setSyncMsg({ ok: false, text: res.message });
+        }
+      });
+    };
+
     return (
-      <div className="rounded-md border border-primary/20 bg-[#0B0B0B]/80 p-5">
-        <div className="flex items-center gap-3">
-          {riotAccount.profile_icon_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={riotAccount.profile_icon_url}
-              alt=""
-              className="h-14 w-14 rounded-md border border-primary/40 object-cover"
-            />
-          ) : null}
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-black text-white">
-                {riotAccount.game_name}
-                <span className="text-primary/70">#{riotAccount.tag_line}</span>
+      <div className="rounded-md border border-primary/20 bg-[#0B0B0B]/80 p-5 space-y-4">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            {riotAccount.profile_icon_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={riotAccount.profile_icon_url}
+                alt=""
+                className="h-14 w-14 rounded-md border border-primary/40 object-cover"
+              />
+            ) : null}
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black text-white">
+                  {riotAccount.game_name}
+                  <span className="text-primary/70">#{riotAccount.tag_line}</span>
+                </p>
+                <Badge className="border-primary/40 bg-transparent text-primary">
+                  Verified
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Region: <span className="font-bold text-white/90">{riotAccount.region}</span> • Automatically synced with Riot API
               </p>
-              <Badge className="border-primary/40 bg-transparent text-primary">
-                Verified
-              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Region: <span className="font-bold text-white/90">{riotAccount.region}</span> • Automatically synced with Riot API
-            </p>
           </div>
+
+          <Button
+            size="sm"
+            onClick={handleSync}
+            disabled={isPendingSync}
+            className="interactive-surface w-fit bg-primary text-primary-foreground font-bold"
+          >
+            {isPendingSync ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                Sync Stats
+              </>
+            )}
+          </Button>
         </div>
+
+        {syncMsg && (
+          <div
+            className={`rounded border p-2.5 flex items-start gap-2 text-xs ${
+              syncMsg.ok
+                ? "border-green-500/30 bg-green-500/5 text-green-400"
+                : "border-destructive/30 bg-destructive/5 text-destructive-foreground"
+            }`}
+          >
+            {syncMsg.ok ? (
+              <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            )}
+            <p className="text-[11px] leading-relaxed">{syncMsg.text}</p>
+          </div>
+        )}
       </div>
     );
   }
