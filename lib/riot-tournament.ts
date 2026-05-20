@@ -33,7 +33,7 @@ async function riotRequest<T>(
   };
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers, cache: "no-store" });
 
     // Handle Rate Limiting (HTTP 429)
     if (res.status === 429) {
