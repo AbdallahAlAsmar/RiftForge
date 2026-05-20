@@ -14,14 +14,14 @@ const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string; teamSize?: number }) {
   const [mode, setMode] = useState("solo");
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const allowDuo = teamSize > 1;
 
   return (
     <form
       className="grid gap-4"
       action={(formData) => {
-        toast({
+        const toastId = toast({
           type: "loading",
           title: "Joining Queue",
           message: "Submitting your queue request..."
@@ -30,6 +30,7 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
         startTransition(async () => {
           try {
             const result = await joinQueue(tournamentId, formData);
+            dismiss(toastId);
             if (result.ok) {
               toast({
                 type: "success",
@@ -44,6 +45,7 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
               });
             }
           } catch (err: any) {
+            dismiss(toastId);
             toast({
               type: "error",
               title: "Queue Error",

@@ -14,7 +14,7 @@ interface JoinTeamButtonProps {
 
 export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
 
   const handleJoin = () => {
     // Show a loading toast
@@ -27,6 +27,7 @@ export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButto
     startTransition(async () => {
       try {
         const res = await joinTournamentWithTeam(tournamentId, teamId);
+        dismiss(loadingToastId);
         if (res.ok) {
           toast({
             type: "success",
@@ -41,6 +42,7 @@ export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButto
           });
         }
       } catch (err: any) {
+        dismiss(loadingToastId);
         toast({
           type: "error",
           title: "Registration Error",

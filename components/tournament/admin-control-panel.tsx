@@ -17,10 +17,10 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
   const [isPendingPublish, startPublishTransition] = useTransition();
   const [isPendingBalance, startBalanceTransition] = useTransition();
   const [isPendingBracket, startBracketTransition] = useTransition();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
 
   const handlePublish = () => {
-    toast({
+    const toastId = toast({
       type: "loading",
       title: "Publishing Tournament",
       message: "Making this tournament public..."
@@ -29,6 +29,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
     startPublishTransition(async () => {
       try {
         const res = await publishTournament(tournamentId);
+        dismiss(toastId);
         if (res.ok) {
           toast({
             type: "success",
@@ -43,6 +44,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
           });
         }
       } catch (err: any) {
+        dismiss(toastId);
         toast({
           type: "error",
           title: "Publish Error",
@@ -53,7 +55,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
   };
 
   const handleBalance = () => {
-    toast({
+    const toastId = toast({
       type: "loading",
       title: "Balancing Roster Teams",
       message: "Calculating optimal positional queue balance..."
@@ -62,6 +64,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
     startBalanceTransition(async () => {
       try {
         const res = await generateBalancedTeams(tournamentId);
+        dismiss(toastId);
         if (res.ok) {
           toast({
             type: "success",
@@ -76,6 +79,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
           });
         }
       } catch (err: any) {
+        dismiss(toastId);
         toast({
           type: "error",
           title: "Balancing Error",
@@ -86,7 +90,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
   };
 
   const handleBracket = () => {
-    toast({
+    const toastId = toast({
       type: "loading",
       title: "Generating Brackets",
       message: "Seeding players and creating match brackets..."
@@ -95,6 +99,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
     startBracketTransition(async () => {
       try {
         const res = await generateBracket(tournamentId);
+        dismiss(toastId);
         if (res.ok) {
           toast({
             type: "success",
@@ -109,6 +114,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
           });
         }
       } catch (err: any) {
+        dismiss(toastId);
         toast({
           type: "error",
           title: "Bracket Error",
