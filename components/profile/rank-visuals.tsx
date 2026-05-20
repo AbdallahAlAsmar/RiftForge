@@ -79,10 +79,10 @@ export function RankAvatar({
           src={borderAsset}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain"
+          className="pointer-events-none absolute left-1/2 top-[-4%] z-20 h-[108%] w-[108%] -translate-x-1/2 object-contain"
         />
       ) : null}
-      <div className="absolute inset-[30%] z-10 overflow-hidden rounded-full bg-secondary shadow-[0_0_0_2px_rgba(0,0,0,0.35)]">
+      <div className="absolute inset-[29%] z-10 overflow-hidden rounded-full bg-secondary shadow-[0_0_0_2px_rgba(0,0,0,0.35)]">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt={alt} className={cn("h-full w-full object-cover", imageClassName)} />
