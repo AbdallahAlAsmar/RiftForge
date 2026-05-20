@@ -79,6 +79,7 @@ export function RankAvatar({
         className
       )}
     >
+      {/* Wing: centered on the container, scale controls how much it bleeds out */}
       {borderAsset ? (
         <Image
           src={borderAsset}
@@ -87,16 +88,17 @@ export function RankAvatar({
           className="
             pointer-events-none
             absolute
-            inset-[-4%]
+            inset-0
             z-20
-            h-[108%]
-            w-[108%]
+            h-full
+            w-full
             object-contain
-            scale-[1.22]
+            scale-[1.18]
           "
         />
       ) : null}
 
+      {/* Avatar circle: inset must match where the wing's inner opening sits */}
       <div
         className="
           absolute
