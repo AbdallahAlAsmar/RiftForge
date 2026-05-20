@@ -91,10 +91,6 @@ export default async function ProfilePage() {
             </CardHeader>
             <CardContent className="grid gap-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">TSR</span>
-                <strong>{profile.tsr}</strong>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Riot</span>
                 <strong>{riot ? `${riot.game_name}#${riot.tag_line}` : "Not linked"}</strong>
               </div>

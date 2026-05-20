@@ -92,7 +92,7 @@ export default async function TournamentAdminPage({
               teams.map((team) => (
                 <div key={team.id} className="flex items-center justify-between rounded-md border p-3">
                   <span>{team.name}</span>
-                  <span className="text-sm text-muted-foreground">{team.average_tsr} TSR</span>
+                  <Badge>{team.source}</Badge>
                 </div>
               ))
             ) : (
@@ -116,7 +116,7 @@ export default async function TournamentAdminPage({
                         <p className="font-medium">
                           {(entry as unknown as { users?: { display_name?: string } }).users?.display_name ?? "Player"}
                         </p>
-                        <p className="text-sm text-muted-foreground">{entry.mode} - {entry.tsr} TSR</p>
+                        <p className="text-sm text-muted-foreground">{entry.mode}</p>
                       </div>
                       <Badge>{entry.status}</Badge>
                     </div>
@@ -138,7 +138,7 @@ export default async function TournamentAdminPage({
                           <div>
                             <p className="font-medium">{profile?.display_name ?? "Player"}</p>
                             <p className="text-sm text-muted-foreground">
-                              solo - {profile?.tsr ?? 300} TSR
+                              solo
                             </p>
                           </div>
                           <Badge>Joined</Badge>

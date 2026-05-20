@@ -7,8 +7,8 @@ export const rankTsr = {
   emerald: 850,
   diamond: 1100,
   master: 1500,
-  grandmaster: 1500,
-  challenger: 1500
+  grandmaster: 1850,
+  challenger: 2200
 } as const;
 
 export type Rank = keyof typeof rankTsr;

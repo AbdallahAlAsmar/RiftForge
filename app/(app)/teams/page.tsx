@@ -64,7 +64,6 @@ export default async function TeamsPage() {
                         </div>
                         <div>
                           <CardTitle>{team.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{team.average_tsr} avg TSR</p>
                         </div>
                       </CardHeader>
                       <CardContent className="flex items-center justify-between">

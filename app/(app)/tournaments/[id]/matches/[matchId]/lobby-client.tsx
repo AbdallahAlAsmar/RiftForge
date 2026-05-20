@@ -296,7 +296,6 @@ export function MatchLobbyClient({
           {/* Blue Side */}
           <div className="rounded-xl border border-sky-500/25 bg-sky-950/10 p-5 backdrop-blur-md">
             <h3 className="text-lg font-bold text-sky-400">{teamAName} (Blue)</h3>
-            <p className="text-xs text-muted-foreground">{match.team_a?.average_tsr} avg TSR</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Picks</span>
@@ -332,7 +331,6 @@ export function MatchLobbyClient({
           {/* Red Side */}
           <div className="rounded-xl border border-red-500/25 bg-red-950/10 p-5 backdrop-blur-md">
             <h3 className="text-lg font-bold text-red-400">{teamBName} (Red)</h3>
-            <p className="text-xs text-muted-foreground">{match.team_b?.average_tsr} avg TSR</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Picks</span>

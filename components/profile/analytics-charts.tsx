@@ -81,11 +81,11 @@ export function AnalyticsCharts({
       <div className="rounded-xl border border-primary/20 bg-card/60 p-5 backdrop-blur-md">
         <div className="flex items-center justify-between border-b pb-3 mb-4">
           <div>
-            <h4 className="text-sm font-bold tracking-wider uppercase text-primary">TSR Momentum</h4>
-            <p className="text-xs text-muted-foreground">Historical progression index</p>
+            <h4 className="text-sm font-bold tracking-wider uppercase text-primary">Competitive Momentum</h4>
+            <p className="text-xs text-muted-foreground">Historical calibration index</p>
           </div>
           <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-black text-primary">
-            {currentTsr} TSR
+            Active
           </span>
         </div>
 
@@ -148,7 +148,7 @@ export function AnalyticsCharts({
                   className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
                 >
                   <div className="rounded bg-black/85 border border-white/10 px-1 py-0.5 text-[9px] text-center font-bold text-white shadow-md">
-                    {Math.round(pt.val)}
+                    Match {idx + 1}
                   </div>
                 </foreignObject>
               </g>

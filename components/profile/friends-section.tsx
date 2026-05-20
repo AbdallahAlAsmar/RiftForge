@@ -137,7 +137,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{user.display_name}</span>
-                        <span className="text-xs text-muted-foreground">{user.rank ?? "unranked"} • {user.tsr} TSR</span>
+                        <span className="text-xs text-muted-foreground">{user.rank ?? "unranked"}</span>
                       </div>
                     </div>
                     {isFriend ? (
@@ -226,7 +226,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                   </div>
                   <div className="flex flex-col">
                     <span className="font-medium">{friend.profile?.display_name ?? "Unknown"}</span>
-                    <span className="text-xs text-muted-foreground">{friend.profile?.rank ?? "unranked"} • {friend.profile?.tsr ?? 0} TSR</span>
+                    <span className="text-xs text-muted-foreground">{friend.profile?.rank ?? "unranked"}</span>
                   </div>
                 </div>
                 <Button

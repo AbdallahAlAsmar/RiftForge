@@ -146,7 +146,6 @@ export default async function TournamentDetailsPage({
                         </div>
                         <div>
                           <p className="font-medium">{team.name}</p>
-                          <p className="text-sm text-muted-foreground">{team.average_tsr} avg TSR</p>
                         </div>
                       </div>
                       <Badge>{team.source}</Badge>
@@ -212,7 +211,6 @@ export default async function TournamentDetailsPage({
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium">{team.name}</p>
-                                  <p className="text-xs text-muted-foreground">{team.average_tsr} avg TSR</p>
                                 </div>
                               </div>
                               <Badge

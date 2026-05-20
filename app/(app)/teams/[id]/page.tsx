@@ -71,7 +71,6 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
               </p>
               <Badge>{team.source}</Badge>
               <h1 className="mt-2 text-3xl font-bold">{team.name}</h1>
-              <p className="mt-1 text-muted-foreground">{team.average_tsr} average TSR</p>
             </div>
           </div>
           {team.tournament_id ? (

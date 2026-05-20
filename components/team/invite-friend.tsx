@@ -51,7 +51,7 @@ export function InviteFriendSection({ teamId, friends }: { teamId: string; frien
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{friend.display_name}</span>
-                  <span className="text-xs text-muted-foreground">{friend.rank ?? "unranked"} • {friend.tsr} TSR</span>
+                  <span className="text-xs text-muted-foreground">{friend.rank ?? "unranked"}</span>
                 </div>
               </div>
               <Button

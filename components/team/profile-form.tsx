@@ -35,7 +35,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <Label className="text-xs uppercase tracking-widest text-muted-foreground">League Rank</Label>
           <p className="text-sm font-bold text-white mt-1">
             {profile.rank
-              ? `${profile.rank.toUpperCase()} (${profile.tsr ?? 300} TSR)`
+              ? profile.rank.toUpperCase()
               : "Riot Account Not Linked"}
           </p>
         </div>

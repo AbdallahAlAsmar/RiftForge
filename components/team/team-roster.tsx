@@ -163,7 +163,7 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
                         ) : null}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {member.role ?? "role TBD"} - {profile?.rank ?? "unranked"} - {profile?.tsr ?? 300} TSR
+                        {member.role ?? "role TBD"} - {profile?.rank ?? "unranked"}
                       </p>
                     </div>
                   </div>
