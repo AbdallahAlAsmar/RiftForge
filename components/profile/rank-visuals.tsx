@@ -93,7 +93,7 @@ export function RankAvatar({
             h-full
             w-full
             object-contain
-            scale-[1.18]
+            scale-[1.40]
           "
         />
       ) : null}
