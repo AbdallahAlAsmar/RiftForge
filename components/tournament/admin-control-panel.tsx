@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Rocket, Bot, GitBranch, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -18,8 +18,13 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
   const [isPendingBalance, startBalanceTransition] = useTransition();
   const [isPendingBracket, startBracketTransition] = useTransition();
   const { toast, dismiss } = useToast();
+  const [optimisticPublished, setOptimisticPublished] = useState(
+    status === "published" || status === "active" || status === "completed"
+  );
 
   const handlePublish = () => {
+    setOptimisticPublished(true);
+
     const toastId = toast({
       type: "loading",
       title: "Publishing Tournament",
@@ -37,6 +42,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
             message: res.message || "The tournament is now live!"
           });
         } else {
+          setOptimisticPublished(false);
           toast({
             type: "error",
             title: "Publish Failed",
@@ -44,6 +50,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
           });
         }
       } catch (err: any) {
+        setOptimisticPublished(false);
         dismiss(toastId);
         toast({
           type: "error",
@@ -124,7 +131,7 @@ export function AdminControlPanel({ tournamentId, status }: AdminControlPanelPro
     });
   };
 
-  const isPublished = status === "published" || status === "active" || status === "completed";
+  const isPublished = optimisticPublished;
 
   return (
     <div className="flex flex-wrap gap-3">

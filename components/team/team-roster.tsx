@@ -5,6 +5,7 @@ import { Crown, ShieldCheck, UserMinus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { promoteTeamMember, removeTeamMember } from "@/lib/actions/teams";
 import { cn } from "@/lib/utils/cn";
 import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
@@ -39,6 +40,13 @@ function TeamActionModal({
   onClose: () => void;
 }) {
   const isPromote = action.memberAction === "promote";
+  const formId = `${action.memberAction}-${action.memberId}`;
+
+  function handleConfirm() {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    form?.requestSubmit();
+    onClose();
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
@@ -61,9 +69,9 @@ function TeamActionModal({
             Cancel
           </Button>
           <Button
-            type="submit"
-            form={`${action.memberAction}-${action.memberId}`}
+            type="button"
             variant={isPromote ? "outline" : "destructive"}
+            onClick={handleConfirm}
           >
             {isPromote ? "Promote" : "Kick player"}
           </Button>
@@ -80,7 +88,8 @@ function CaptainActionForm({
   memberAction,
   tone,
   onRequestAction,
-  onComplete
+  onComplete,
+  onNotify
 }: {
   teamId: string;
   memberId: string;
@@ -89,15 +98,19 @@ function CaptainActionForm({
   tone: "outline" | "destructive";
   onRequestAction: (action: PendingAction) => void;
   onComplete: () => void;
+  onNotify: (ok: boolean, message: string) => void;
 }) {
   const action = memberAction === "promote" ? promoteTeamMember : removeTeamMember;
   const [state, formAction] = useActionState(action, initialState);
 
   useEffect(() => {
+    if (state.message) {
+      onNotify(state.ok, state.message);
+    }
     if (state.ok && state.message) {
       onComplete();
     }
-  }, [onComplete, state.message, state.ok]);
+  }, [onComplete, onNotify, state.message, state.ok]);
 
   return (
     <>
@@ -123,6 +136,15 @@ function CaptainActionForm({
 
 export function TeamRoster({ teamId, members, canManage }: { teamId: string; members: TeamMember[]; canManage: boolean }) {
   const [activeAction, setActiveAction] = useState<PendingAction | null>(null);
+  const { toast } = useToast();
+
+  function handleNotify(ok: boolean, message: string) {
+    toast({
+      type: ok ? "success" : "error",
+      title: ok ? "Action Completed" : "Action Failed",
+      message
+    });
+  }
 
   return (
     <>
@@ -186,6 +208,7 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
                         tone="outline"
                         onRequestAction={setActiveAction}
                         onComplete={() => setActiveAction(null)}
+                        onNotify={handleNotify}
                       />
                       <CaptainActionForm
                         teamId={teamId}
@@ -195,6 +218,7 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
                         tone="destructive"
                         onRequestAction={setActiveAction}
                         onComplete={() => setActiveAction(null)}
+                        onNotify={handleNotify}
                       />
                     </div>
                   ) : null}

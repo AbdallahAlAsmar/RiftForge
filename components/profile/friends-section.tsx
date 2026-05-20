@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, UserPlus, Search, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 import { searchUsers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend } from "@/lib/actions/friends";
 
@@ -21,22 +22,29 @@ type FriendData = {
 
 export function FriendsSection({ currentUserId, friends }: { currentUserId: string; friends: FriendData[] }) {
   const router = useRouter();
+  const { toast } = useToast();
+  const [, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [optimisticSent, setOptimisticSent] = useState<Set<string>>(new Set());
+  const [optimisticFriends, setOptimisticFriends] = useState<FriendData[]>(friends);
 
-  const pendingRequests = friends.filter(f => f.status === "pending" && f.friend_id === currentUserId);
-  const sentRequests = friends.filter(f => f.status === "pending" && f.user_id === currentUserId);
-  const acceptedFriends = friends.filter(f => f.status === "accepted");
+  const pendingRequests = optimisticFriends.filter((f) => f.status === "pending" && f.friend_id === currentUserId);
+  const sentRequests = optimisticFriends.filter((f) => f.status === "pending" && f.user_id === currentUserId);
+  const acceptedFriends = optimisticFriends.filter((f) => f.status === "accepted");
+
+  useEffect(() => {
+    setOptimisticFriends(friends);
+  }, [friends]);
 
   useEffect(() => {
     setOptimisticSent((current) => {
       const next = new Set<string>();
 
       for (const userId of current) {
-        const stillPending = friends.some(
+        const stillPending = optimisticFriends.some(
           (friendship) =>
             friendship.status === "pending" &&
             friendship.user_id === currentUserId &&
@@ -50,7 +58,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
 
       return next;
     });
-  }, [currentUserId, friends]);
+  }, [currentUserId, optimisticFriends]);
 
   useEffect(() => {
     if (!searchQuery || searchQuery.length < 3) {
@@ -72,27 +80,81 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
   async function handleAction(action: () => Promise<{ok: boolean, message?: string}>, loadingId: string) {
     setActionLoading(loadingId);
     const result = await action();
-    if (result.ok) {
-      router.refresh();
-    }
     setActionLoading(null);
+    if (result.ok) {
+      startTransition(() => {
+        router.refresh();
+      });
+    }
     return result;
   }
 
   async function handleSendRequest(userId: string) {
+    const matchedUser = searchResults.find((user) => user.id === userId) ?? null;
+    const optimisticRequest: FriendData = {
+      id: `optimistic-${userId}`,
+      status: "pending",
+      user_id: currentUserId,
+      friend_id: userId,
+      profile: matchedUser
+    };
+
+    setOptimisticFriends((prev) => [optimisticRequest, ...prev]);
+    setOptimisticSent((prev) => new Set(prev).add(userId));
+
     const result = await handleAction(() => sendFriendRequest(userId), userId);
-    if (result.ok) {
-      setOptimisticSent(prev => new Set(prev).add(userId));
+    if (!result.ok) {
+      setOptimisticFriends((prev) => prev.filter((friendship) => friendship.id !== optimisticRequest.id));
+      setOptimisticSent((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      toast({ type: "error", title: "Friend Request Failed", message: result.message || "Could not send friend request." });
     }
   }
 
   async function handleRemoveFriend(friendId: string, friendshipId: string) {
-    await handleAction(() => removeFriend(friendshipId), friendshipId);
-    setOptimisticSent(prev => {
+    const previous = optimisticFriends;
+    setOptimisticFriends((prev) => prev.filter((friendship) => friendship.id !== friendshipId));
+
+    const result = await handleAction(() => removeFriend(friendshipId), friendshipId);
+    if (!result.ok) {
+      setOptimisticFriends(previous);
+      toast({ type: "error", title: "Remove Failed", message: result.message || "Could not remove friend." });
+    }
+
+    setOptimisticSent((prev) => {
       const next = new Set(prev);
       next.delete(friendId);
       return next;
     });
+  }
+
+  async function handleAcceptRequest(friendshipId: string) {
+    const previous = optimisticFriends;
+    setOptimisticFriends((prev) =>
+      prev.map((friendship) =>
+        friendship.id === friendshipId ? { ...friendship, status: "accepted" } : friendship
+      )
+    );
+
+    const result = await handleAction(() => acceptFriendRequest(friendshipId), friendshipId);
+    if (!result.ok) {
+      setOptimisticFriends(previous);
+      toast({ type: "error", title: "Accept Failed", message: result.message || "Could not accept request." });
+    }
+  }
+
+  async function handleDeclineRequest(friendshipId: string) {
+    const previous = optimisticFriends;
+    setOptimisticFriends((prev) => prev.filter((friendship) => friendship.id !== friendshipId));
+
+    const result = await handleAction(() => declineFriendRequest(friendshipId), friendshipId);
+    if (!result.ok) {
+      setOptimisticFriends(previous);
+      toast({ type: "error", title: "Decline Failed", message: result.message || "Could not decline request." });
+    }
   }
 
   return (
@@ -123,8 +185,8 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
             <div className="rounded-md border p-2 grid gap-2">
               <p className="text-xs font-medium text-muted-foreground px-2 pt-1">Search Results</p>
               {searchResults.map(user => {
-                const isFriend = friends.some(f => f.profile?.id === user.id && f.status === "accepted");
-                const hasSentReq = optimisticSent.has(user.id) || friends.some(f => f.profile?.id === user.id && f.status === "pending" && f.user_id === currentUserId);
+                const isFriend = optimisticFriends.some((f) => f.profile?.id === user.id && f.status === "accepted");
+                const hasSentReq = optimisticSent.has(user.id) || optimisticFriends.some((f) => f.profile?.id === user.id && f.status === "pending" && f.user_id === currentUserId);
                 
                 return (
                   <div key={user.id} className="flex items-center justify-between rounded-md p-2 hover:bg-secondary/50">
@@ -134,7 +196,9 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                         src={user.avatar_url}
                         alt={user.display_name ?? "Player"}
                         showBorder={user.show_rank_border}
-                        className="h-8 w-8"
+                        className="h-10 w-10"
+                        wingClassName="scale-[2.70] -translate-y-3"
+                        avatarShellClassName="inset-[13%]"
                       />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{user.display_name}</span>
@@ -180,6 +244,8 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                     alt={req.profile?.display_name ?? "Player"}
                     showBorder={req.profile?.show_rank_border}
                     className="h-10 w-10"
+                    wingClassName="scale-[1.95] -translate-y-3"
+                    avatarShellClassName="inset-[15%]"
                   />
                   <div className="flex flex-col">
                     <span className="font-medium">{req.profile?.display_name ?? "Unknown"}</span>
@@ -195,7 +261,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                     variant="outline"
                     className="h-8 w-8 p-0"
                     disabled={actionLoading === req.id}
-                    onClick={() => handleAction(() => declineFriendRequest(req.id), req.id)}
+                      onClick={() => handleDeclineRequest(req.id)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -203,7 +269,7 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                     size="sm"
                     className="h-8 w-8 p-0"
                     disabled={actionLoading === req.id}
-                    onClick={() => handleAction(() => acceptFriendRequest(req.id), req.id)}
+                      onClick={() => handleAcceptRequest(req.id)}
                   >
                     {actionLoading === req.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   </Button>
@@ -233,6 +299,8 @@ export function FriendsSection({ currentUserId, friends }: { currentUserId: stri
                     alt={friend.profile?.display_name ?? "Player"}
                     showBorder={friend.profile?.show_rank_border}
                     className="h-10 w-10"
+                    wingClassName="scale-[3.00] -translate-y-3"
+                    avatarShellClassName="inset-[10%]"
                   />
                   <div className="flex flex-col">
                     <span className="font-medium">{friend.profile?.display_name ?? "Unknown"}</span>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { RankAvatar, RankLabel } from "@/components/profile/rank-visuals";
 
 type FriendData = {
@@ -23,10 +24,20 @@ import { inviteUserToTeam } from "@/lib/actions/teams"; // Assume this exists or
 
 export function InviteFriendSection({ teamId, friends }: { teamId: string; friends: FriendData[] }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [optimisticFriends, setOptimisticFriends] = useState<FriendData[]>(friends);
+  const { toast } = useToast();
 
   async function handleInvite(friendId: string) {
+    const previous = optimisticFriends;
+    setOptimisticFriends((prev) => prev.filter((friend) => friend.id !== friendId));
     setLoadingId(friendId);
-    await inviteUserToTeam(teamId, friendId);
+    const result = await inviteUserToTeam(teamId, friendId);
+    if (!result.ok) {
+      setOptimisticFriends(previous);
+      toast({ type: "error", title: "Invite Failed", message: result.message || "Could not send invite." });
+    } else {
+      toast({ type: "success", title: "Invite Sent", message: "Team invite sent instantly." });
+    }
     setLoadingId(null);
   }
 
@@ -36,12 +47,12 @@ export function InviteFriendSection({ teamId, friends }: { teamId: string; frien
         <CardTitle className="text-sm">Invite Friends to Team</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2">
-        {friends.length === 0 ? (
+        {optimisticFriends.length === 0 ? (
           <div className="rounded-md border p-4 text-sm text-muted-foreground text-center">
             You don't have any friends to invite yet.
           </div>
         ) : (
-          friends.map(friend => (
+          optimisticFriends.map(friend => (
             <div key={friend.id} className="flex items-center justify-between rounded-md border p-3 hover:bg-secondary/50">
               <div className="flex items-center gap-3">
                   <RankAvatar
@@ -50,6 +61,8 @@ export function InviteFriendSection({ teamId, friends }: { teamId: string; frien
                     alt={friend.display_name ?? "Player"}
                     showBorder={friend.show_rank_border}
                     className="h-8 w-8"
+                    wingClassName="scale-[2.5] -translate-y-2"
+                    avatarShellClassName="inset-[15%]"
                   />
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{friend.display_name}</span>

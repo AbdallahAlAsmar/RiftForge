@@ -1,16 +1,30 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { createTeam } from "@/lib/actions/teams";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useToast } from "@/components/ui/toast";
 
 const initialState = { ok: true, message: "" };
 
 export function CreateTeamForm({ tournamentId }: { tournamentId?: string }) {
   const [state, action] = useActionState(createTeam, initialState);
+  const { toast } = useToast();
+  const lastMessageRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!state.message || state.message === lastMessageRef.current) return;
+    lastMessageRef.current = state.message;
+
+    toast({
+      type: state.ok ? "success" : "error",
+      title: state.ok ? "Team Created" : "Create Team Failed",
+      message: state.message
+    });
+  }, [state.message, state.ok, toast]);
 
   return (
     <Card className="interactive-surface bg-card/95">

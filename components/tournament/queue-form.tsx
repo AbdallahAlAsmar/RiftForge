@@ -14,6 +14,8 @@ const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string; teamSize?: number }) {
   const [mode, setMode] = useState("solo");
   const [isPending, startTransition] = useTransition();
+  const [queuedOptimistic, setQueuedOptimistic] = useState(false);
+  const [queuedMessage, setQueuedMessage] = useState<string>("");
   const { toast, dismiss } = useToast();
   const allowDuo = teamSize > 1;
 
@@ -21,6 +23,9 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
     <form
       className="grid gap-4"
       action={(formData) => {
+        setQueuedOptimistic(true);
+        setQueuedMessage("Queue request sent. Finalizing...");
+
         const toastId = toast({
           type: "loading",
           title: "Joining Queue",
@@ -32,12 +37,16 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
             const result = await joinQueue(tournamentId, formData);
             dismiss(toastId);
             if (result.ok) {
+              setQueuedOptimistic(true);
+              setQueuedMessage(result.message || "You are now in the matchmaking queue!");
               toast({
                 type: "success",
                 title: "Queue Joined",
                 message: result.message || "You are now in the matchmaking queue!"
               });
             } else {
+              setQueuedOptimistic(false);
+              setQueuedMessage("");
               toast({
                 type: "error",
                 title: "Queue Failed",
@@ -46,6 +55,8 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
             }
           } catch (err: any) {
             dismiss(toastId);
+            setQueuedOptimistic(false);
+            setQueuedMessage("");
             toast({
               type: "error",
               title: "Queue Error",
@@ -79,18 +90,23 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
           ))}
         </div>
       </div>
-      <Button disabled={isPending} className="font-bold">
+      <Button disabled={isPending || queuedOptimistic} className="font-bold">
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
             Joining...
           </>
+        ) : queuedOptimistic ? (
+          "Queued"
         ) : teamSize === 5 ? (
           "Join solo/duo queue"
         ) : (
           `Join ${teamSize}v${teamSize} queue`
         )}
       </Button>
+      {queuedOptimistic && queuedMessage ? (
+        <p className="text-xs text-primary">{queuedMessage}</p>
+      ) : null}
     </form>
   );
 }

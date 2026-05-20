@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { startRiotVerification, completeRiotVerification, cancelRiotVerification, syncRiotStats } from "@/lib/actions/riot-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useToast } from "@/components/ui/toast";
 import { Info, AlertTriangle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 
 interface RiotVerificationClientProps {
@@ -22,15 +24,31 @@ export function RiotVerificationClient({
   pendingVerification,
   isMockEnabled
 }: RiotVerificationClientProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [startState, startAction] = useActionState(startRiotVerification, { ok: true, message: "" });
   const [isPendingComplete, startCompleteTransition] = useTransition();
   const [isPendingCancel, startCancelTransition] = useTransition();
   const [isPendingSync, startSyncTransition] = useTransition();
   const [completeMsg, setCompleteMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [optimisticCanceled, setOptimisticCanceled] = useState(false);
+  const lastStartMessageRef = useRef<string>("");
 
   const [riotId, setRiotId] = useState("");
   const [region, setRegion] = useState("EUW");
+
+  useEffect(() => {
+    if (!startState.message || startState.message === lastStartMessageRef.current) return;
+    if (riotAccount || pendingVerification) return;
+
+    lastStartMessageRef.current = startState.message;
+    toast({
+      type: startState.ok ? "success" : "error",
+      title: startState.ok ? "Verification Started" : "Verification Failed",
+      message: startState.message
+    });
+  }, [pendingVerification, riotAccount, startState.message, startState.ok, toast]);
 
   // 1. Linked State
   if (riotAccount) {
@@ -115,15 +133,16 @@ export function RiotVerificationClient({
   }
 
   // 2. Pending Verification State
-  if (pendingVerification) {
+  if (pendingVerification && !optimisticCanceled) {
     const requiredIconUrl = `https://ddragon.leagueoflegends.com/cdn/13.24.1/img/profileicon/${pendingVerification.required_icon_id}.png`;
 
     const handleComplete = () => {
-      setCompleteMsg(null);
+      setCompleteMsg({ ok: true, text: "Checking Riot API now..." });
       startCompleteTransition(async () => {
         const res = await completeRiotVerification();
         if (res.ok) {
           setCompleteMsg({ ok: true, text: res.message });
+          router.refresh();
         } else {
           setCompleteMsg({ ok: false, text: res.message });
         }
@@ -131,9 +150,16 @@ export function RiotVerificationClient({
     };
 
     const handleCancel = () => {
-      setCompleteMsg(null);
+      setOptimisticCanceled(true);
+      setCompleteMsg({ ok: true, text: "Verification cancelled." });
       startCancelTransition(async () => {
-        await cancelRiotVerification();
+        const result = await cancelRiotVerification();
+        if (!result.ok) {
+          setOptimisticCanceled(false);
+          setCompleteMsg({ ok: false, text: result.message || "Unable to cancel verification." });
+          return;
+        }
+        router.refresh();
       });
     };
 

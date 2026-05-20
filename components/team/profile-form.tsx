@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { updateProfile } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { RankLabel } from "@/components/profile/rank-visuals";
+import { useToast } from "@/components/ui/toast";
 
 type Profile = {
   display_name: string | null;
@@ -22,6 +23,19 @@ const initialState = { ok: true, message: "" };
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const [state, action] = useActionState(updateProfile, initialState);
+  const { toast } = useToast();
+  const lastMessageRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!state.message || state.message === lastMessageRef.current) return;
+    lastMessageRef.current = state.message;
+
+    toast({
+      type: state.ok ? "success" : "error",
+      title: state.ok ? "Profile Updated" : "Profile Update Failed",
+      message: state.message
+    });
+  }, [state.message, state.ok, toast]);
 
   return (
     <form action={action} className="grid gap-4">

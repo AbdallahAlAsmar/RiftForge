@@ -19,7 +19,7 @@ export default async function ProfilePage() {
     { data: profile },
     { data: riot },
     { data: pendingVerification },
-    { data: tournaments },
+    { data: tournamentParticipations },
     { data: friendsData }
   ] = await Promise.all([
     supabase.from("users").select("*").eq("id", user.id).single(),
@@ -27,11 +27,54 @@ export default async function ProfilePage() {
     supabase.from("riot_verifications").select("*").eq("user_id", user.id).maybeSingle(),
     supabase
       .from("tournament_participants")
-      .select("id, tournaments(id, name, status)")
+      .select("id, team_id, tournaments(id, name, status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase.from("friends").select("*").or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
   ]);
+
+  const participations = (tournamentParticipations ?? []) as Array<{
+    id: string;
+    team_id: string | null;
+    tournaments?: { id: string; name: string; status: string } | { id: string; name: string; status: string }[] | null;
+  }>;
+
+  const getTournament = (value: { id: string; name: string; status: string } | { id: string; name: string; status: string }[] | null | undefined) => {
+    if (!value) return null;
+    return Array.isArray(value) ? value[0] ?? null : value;
+  };
+
+  const tournamentHistory = participations.filter((row) => Boolean(getTournament(row.tournaments)));
+  const completedTournamentIds = tournamentHistory
+    .filter((row) => getTournament(row.tournaments)?.status === "completed")
+    .map((row) => getTournament(row.tournaments)?.id)
+    .filter((id): id is string => Boolean(id));
+
+  const completedMatchesQuery = completedTournamentIds.length
+    ? supabase
+        .from("matches")
+        .select("tournament_id, winner_team_id, next_match_id, status")
+        .in("tournament_id", completedTournamentIds)
+        .eq("status", "confirmed")
+        .is("next_match_id", null)
+    : null;
+
+  const { data: completedFinalMatches } = completedMatchesQuery ? await completedMatchesQuery : { data: [] };
+
+  const completedFinalMatchMap = new Map(
+    (completedFinalMatches ?? []).map((match) => [match.tournament_id, match.winner_team_id])
+  );
+
+  const tournamentWins = tournamentHistory.reduce((count, row) => {
+    const tournamentId = getTournament(row.tournaments)?.id;
+    if (!tournamentId || !row.team_id) return count;
+    return completedFinalMatchMap.get(tournamentId) === row.team_id ? count + 1 : count;
+  }, 0);
+
+  const tournamentCompletedCount = tournamentHistory.filter((row) => getTournament(row.tournaments)?.status === "completed").length;
+  const tournamentActiveCount = tournamentHistory.filter((row) =>
+    getTournament(row.tournaments) ? ["published", "check_in", "live"].includes(getTournament(row.tournaments)!.status) : false
+  ).length;
 
   const relatedUserIds = Array.from(new Set(
     (friendsData || []).flatMap((f: any) => [f.user_id, f.friend_id])
@@ -144,7 +187,10 @@ export default async function ProfilePage() {
               <AnalyticsCharts
                 currentTsr={profile.tsr}
                 preferredRoles={profile.preferred_roles || []}
-                historyCount={tournaments?.length || 0}
+                historyCount={tournamentHistory.length}
+                tournamentWins={tournamentWins}
+                tournamentCompletedCount={tournamentCompletedCount}
+                tournamentActiveCount={tournamentActiveCount}
               />
             </CardContent>
           </Card>
@@ -222,11 +268,9 @@ export default async function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              {tournaments?.length ? (
-                tournaments.map((row, index) => {
-                  const tournament = (row as unknown as {
-                    tournaments?: { id: string; name: string; status: string };
-                  }).tournaments;
+              {tournamentHistory.length ? (
+                tournamentHistory.map((row, index) => {
+                  const tournament = getTournament(row.tournaments);
                   return tournament ? (
                     <Reveal key={row.id} delay={0.03 * index} distance={10}>
                       <HoverLift>

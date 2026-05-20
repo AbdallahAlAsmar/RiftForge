@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, X, UserPlus, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function NotificationsTray({ notifications }: NotificationsTrayProps) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const trayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [, startTransition] = useTransition();
 
   const [friendsList, setFriendsList] = useState<FriendNotification[]>(notifications.friends);
   const [invitesList, setInvitesList] = useState<TeamInviteNotification[]>(notifications.invites);
@@ -188,7 +189,9 @@ export function NotificationsTray({ notifications }: NotificationsTrayProps) {
     setLoadingId(id);
     const result = await action();
     if (result?.ok) {
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } else {
       setDismissedIds((current) => {
         const next = new Set(current);

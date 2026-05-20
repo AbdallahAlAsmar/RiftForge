@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createTournament } from "@/lib/actions/tournaments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useToast } from "@/components/ui/toast";
 
 const initialState = { ok: true, message: "" };
 
 export function CreateTournamentForm() {
   const [state, action] = useActionState(createTournament, initialState);
+  const { toast } = useToast();
+  const lastMessageRef = useRef<string>("");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -27,6 +30,17 @@ export function CreateTournamentForm() {
   const [startsAt, setStartsAt] = useState("");
   const [checkInStartsAt, setCheckInStartsAt] = useState("");
   const [checkInEndsAt, setCheckInEndsAt] = useState("");
+
+  useEffect(() => {
+    if (!state.message || state.message === lastMessageRef.current) return;
+    lastMessageRef.current = state.message;
+
+    toast({
+      type: state.ok ? "success" : "error",
+      title: state.ok ? "Tournament Created" : "Create Tournament Failed",
+      message: state.message
+    });
+  }, [state.message, state.ok, toast]);
 
   return (
     <Card className="interactive-surface bg-card/95">

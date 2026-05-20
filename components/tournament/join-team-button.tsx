@@ -14,9 +14,12 @@ interface JoinTeamButtonProps {
 
 export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButtonProps) {
   const [isPending, startTransition] = useTransition();
+  const [optimisticJoined, setOptimisticJoined] = useState(false);
   const { toast, dismiss } = useToast();
 
   const handleJoin = () => {
+    setOptimisticJoined(true);
+
     // Show a loading toast
     const loadingToastId = toast({
       type: "loading",
@@ -35,6 +38,7 @@ export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButto
             message: res.message || `${teamName} has successfully registered!`
           });
         } else {
+          setOptimisticJoined(false);
           toast({
             type: "error",
             title: "Registration Failed",
@@ -42,6 +46,7 @@ export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButto
           });
         }
       } catch (err: any) {
+        setOptimisticJoined(false);
         dismiss(loadingToastId);
         toast({
           type: "error",
@@ -56,12 +61,17 @@ export function JoinTeamButton({ tournamentId, teamId, teamName }: JoinTeamButto
     <Button
       className="w-full interactive-surface font-bold mt-2"
       onClick={handleJoin}
-      disabled={isPending}
+      disabled={isPending || optimisticJoined}
     >
       {isPending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
           Joining...
+        </>
+      ) : optimisticJoined ? (
+        <>
+          <UsersRound className="mr-2 h-4 w-4" />
+          Team Registered
         </>
       ) : (
         <>

@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, UsersRound } from "lucide-react";
 import { joinTournament } from "@/lib/actions/tournaments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 
 type JoinTournamentCardProps = {
   tournamentId: string;
@@ -19,23 +20,38 @@ export function JoinTournamentCard({
   teamName,
   initialMessage
 }: JoinTournamentCardProps) {
+  const { toast } = useToast();
   const [joined, setJoined] = useState(isJoined);
   const [joinedTeamName, setJoinedTeamName] = useState<string | null>(teamName);
   const [message, setMessage] = useState(initialMessage ?? "");
   const [isPending, startTransition] = useTransition();
 
   async function handleJoin() {
+    setJoined(true);
+    setMessage("Joining tournament...");
+
     startTransition(async () => {
       const result = await joinTournament(tournamentId);
       if (result.ok) {
         setJoined(true);
         setMessage(result.message);
+        toast({
+          type: "success",
+          title: "Tournament Joined",
+          message: result.message || "You are registered for this tournament."
+        });
         if (result.message.includes("placed in ")) {
           const teamMatch = result.message.match(/placed in (.+)\./i);
           setJoinedTeamName(teamMatch?.[1] ?? null);
         }
       } else {
+        setJoined(false);
         setMessage(result.message);
+        toast({
+          type: "error",
+          title: "Join Failed",
+          message: result.message || "Could not join tournament."
+        });
       }
     });
   }
