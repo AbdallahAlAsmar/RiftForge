@@ -7,15 +7,23 @@ import { Float, HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reve
 import { ProfileForm } from "@/components/team/profile-form";
 import { FriendsSection } from "@/components/profile/friends-section";
 import { AnalyticsCharts } from "@/components/profile/analytics-charts";
+import { RiotVerificationClient } from "@/components/profile/riot-verification-client";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const [{ data: profile }, { data: riot }, { data: tournaments }, { data: friendsData }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: riot },
+    { data: pendingVerification },
+    { data: tournaments },
+    { data: friendsData }
+  ] = await Promise.all([
     supabase.from("users").select("*").eq("id", user.id).single(),
     supabase.from("riot_accounts").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase.from("riot_verifications").select("*").eq("user_id", user.id).maybeSingle(),
     supabase
       .from("tournament_participants")
       .select("id, tournaments(id, name, status)")
@@ -152,25 +160,21 @@ export default async function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              <div className="flex flex-col justify-between gap-3 rounded-md border p-4 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-4 rounded-md border p-4">
                 <div className="flex items-start gap-3">
                   <Swords className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
-                    <p className="font-medium">Riot Games</p>
-                    <p className="text-sm text-muted-foreground">
-                      {riot
-                        ? `${riot.game_name}#${riot.tag_line} is linked for tournament eligibility.`
-                        : "Required before joining queues, registering teams, or participating in tournaments."}
+                    <p className="font-medium">Riot Games Link</p>
+                    <p className="text-xs text-muted-foreground">
+                      Required to verify your League profile, register teams, and enter matchmaking queues.
                     </p>
                   </div>
                 </div>
-                {riot ? (
-                  <Badge className="w-fit text-primary">Linked</Badge>
-                ) : (
-                  <Button asChild className="interactive-surface w-fit">
-                    <Link href="/auth/riot?mode=link&next=/profile">Connect Riot</Link>
-                  </Button>
-                )}
+                <RiotVerificationClient
+                  riotAccount={riot}
+                  pendingVerification={pendingVerification}
+                  isMockEnabled={!process.env.RIOT_API_KEY || process.env.RIOT_DEV_MOCK === "true"}
+                />
               </div>
 
               <div className="flex flex-col justify-between gap-3 rounded-md border p-4 sm:flex-row sm:items-center">

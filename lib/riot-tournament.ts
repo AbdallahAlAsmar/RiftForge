@@ -16,7 +16,8 @@ type RiotRequestOptions = {
 async function riotRequest<T>(
   endpoint: string,
   options: RequestInit = {},
-  config: RiotRequestOptions = { retries: 3, backoffMs: 1000 }
+  config: RiotRequestOptions = { retries: 3, backoffMs: 1000 },
+  host = RIOT_API_BASE
 ): Promise<T | null> {
   const apiKey = process.env.RIOT_API_KEY;
   if (!apiKey) {
@@ -24,7 +25,7 @@ async function riotRequest<T>(
     return null;
   }
 
-  const url = `${RIOT_API_BASE}${endpoint}`;
+  const url = endpoint.startsWith("http") ? endpoint : `${host}${endpoint}`;
   const headers = {
     ...options.headers,
     "X-Riot-Token": apiKey,
@@ -158,4 +159,71 @@ export async function getMatchStats(matchId: string): Promise<any | null> {
   }
 
   return riotRequest<any>(`/lol/match/v5/matches/${matchId}`);
+}
+
+/**
+ * 5. Get Summoner PUUID and Active Profile Icon ID
+ * Calls Riot Account-v1 to fetch PUUID, then Summoner-v4 to get current in-game Profile Icon ID.
+ */
+export async function getSummonerProfileIconId(
+  gameName: string,
+  tagLine: string,
+  region: string
+): Promise<{ puuid: string; profileIconId: number } | null> {
+  const normRegion = region.toUpperCase();
+
+  if (MOCK_ENABLED) {
+    console.log(`[Riot API Mock] getSummonerProfileIconId for ${gameName}#${tagLine} (${normRegion})`);
+    return {
+      puuid: `mock-puuid-${gameName.toLowerCase()}-${tagLine.toLowerCase()}`,
+      profileIconId: 28 // Emulate correct matching default starter icon
+    };
+  }
+
+  // 1. Regional Routing for Account-v1
+  const regionalRouter = ["NA", "BR", "LAN", "LAS", "OCE"].includes(normRegion)
+    ? "americas"
+    : ["KR", "JP"].includes(normRegion)
+      ? "asia"
+      : "europe";
+
+  const accountHost = `https://${regionalRouter}.api.riotgames.com`;
+  const accountUrl = `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+
+  console.log(`[Riot Account API] Resolving ${gameName}#${tagLine} on ${regionalRouter}...`);
+  const accountRes = await riotRequest<{ puuid: string }>(accountUrl, {}, { retries: 3 }, accountHost);
+  if (!accountRes?.puuid) {
+    console.warn(`[Riot Account API] Summoner ${gameName}#${tagLine} not found.`);
+    return null;
+  }
+
+  // 2. Platform Routing for Summoner-v4
+  const platformMap: Record<string, string> = {
+    EUW: "euw1",
+    EUNE: "eun1",
+    NA: "na1",
+    KR: "kr",
+    BR: "br1",
+    LAN: "la1",
+    LAS: "la2",
+    OCE: "oc1",
+    TR: "tr1",
+    RU: "ru",
+    JP: "jp1"
+  };
+  const platformRouter = platformMap[normRegion] || "euw1";
+  const summonerHost = `https://${platformRouter}.api.riotgames.com`;
+  const summonerUrl = `/lol/summoner/v4/summoners/by-puuid/${accountRes.puuid}`;
+
+  console.log(`[Riot Summoner API] Fetching Profile Icon for PUUID ${accountRes.puuid} on ${platformRouter}...`);
+  const summonerRes = await riotRequest<{ profileIconId: number }>(summonerUrl, {}, { retries: 3 }, summonerHost);
+  if (!summonerRes || typeof summonerRes.profileIconId !== "number") {
+    console.warn(`[Riot Summoner API] Failed to fetch summoner info for PUUID ${accountRes.puuid}`);
+    return null;
+  }
+
+  return {
+    puuid: accountRes.puuid,
+    profileIconId: summonerRes.profileIconId
+  };
 }

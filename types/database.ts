@@ -31,6 +31,15 @@ export type RiotAccountRow = {
   updated_at: string;
 };
 
+export type RiotVerificationRow = {
+  user_id: string;
+  game_name: string;
+  tag_line: string;
+  region: string;
+  required_icon_id: number;
+  created_at: string;
+};
+
 export type TournamentRow = {
   id: string;
   owner_id: string;
