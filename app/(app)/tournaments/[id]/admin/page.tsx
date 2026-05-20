@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { Bot, GitBranch, Radio, Rocket, UsersRound } from "lucide-react";
+import { Bot, GitBranch, Radio, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { generateBracket } from "@/lib/actions/brackets";
-import { generateBalancedTeams } from "@/lib/actions/queue";
-import { publishTournament } from "@/lib/actions/tournaments";
 import { requireTournamentOwner } from "@/lib/actions/common";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { AdminControlPanel } from "@/components/tournament/admin-control-panel";
 
 export default async function TournamentAdminPage({
   params
@@ -51,21 +49,6 @@ export default async function TournamentAdminPage({
     users: profilesById.get(p.user_id) || null
   }));
 
-  async function publishAction() {
-    "use server";
-    await publishTournament(id);
-  }
-
-  async function balanceAction() {
-    "use server";
-    await generateBalancedTeams(id);
-  }
-
-  async function bracketAction() {
-    "use server";
-    await generateBracket(id);
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -94,22 +77,8 @@ export default async function TournamentAdminPage({
         <CardHeader>
           <CardTitle>Control panel</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <form action={publishAction}>
-            <Button variant="outline">
-              <Rocket className="h-4 w-4" /> Publish
-            </Button>
-          </form>
-          <form action={balanceAction}>
-            <Button variant="outline">
-              <Bot className="h-4 w-4" /> Build balanced teams
-            </Button>
-          </form>
-          <form action={bracketAction}>
-            <Button>
-              <GitBranch className="h-4 w-4" /> Generate bracket
-            </Button>
-          </form>
+        <CardContent>
+          <AdminControlPanel tournamentId={id} status={tournament.status} />
         </CardContent>
       </Card>
 

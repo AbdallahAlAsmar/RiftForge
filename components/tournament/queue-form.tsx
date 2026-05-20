@@ -6,22 +6,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
+import { Loader2 } from "lucide-react";
 
 const roles = ["top", "jungle", "mid", "bot", "support", "fill"];
 
 export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string; teamSize?: number }) {
   const [mode, setMode] = useState("solo");
-  const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
   const allowDuo = teamSize > 1;
 
   return (
     <form
       className="grid gap-4"
       action={(formData) => {
+        toast({
+          type: "loading",
+          title: "Joining Queue",
+          message: "Submitting your queue request..."
+        });
+
         startTransition(async () => {
-          const result = await joinQueue(tournamentId, formData);
-          setMessage(result.message);
+          try {
+            const result = await joinQueue(tournamentId, formData);
+            if (result.ok) {
+              toast({
+                type: "success",
+                title: "Queue Joined",
+                message: result.message || "You are now in the matchmaking queue!"
+              });
+            } else {
+              toast({
+                type: "error",
+                title: "Queue Failed",
+                message: result.message || "Failed to join queue."
+              });
+            }
+          } catch (err: any) {
+            toast({
+              type: "error",
+              title: "Queue Error",
+              message: err.message || "An unexpected error occurred."
+            });
+          }
         });
       }}
     >
@@ -49,13 +77,17 @@ export function QueueForm({ tournamentId, teamSize = 5 }: { tournamentId: string
           ))}
         </div>
       </div>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      <Button disabled={isPending}>
-        {isPending
-          ? "Joining..."
-          : teamSize === 5
-            ? "Join solo/duo queue"
-            : `Join ${teamSize}v${teamSize} queue`}
+      <Button disabled={isPending} className="font-bold">
+        {isPending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+            Joining...
+          </>
+        ) : teamSize === 5 ? (
+          "Join solo/duo queue"
+        ) : (
+          `Join ${teamSize}v${teamSize} queue`
+        )}
       </Button>
     </form>
   );

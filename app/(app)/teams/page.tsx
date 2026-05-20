@@ -11,6 +11,7 @@ export default async function TeamsPage() {
   const { data: teams } = await supabase
     .from("teams")
     .select("id, name, logo_url, average_tsr, source, tournament_id")
+    .is("tournament_id", null)
     .order("created_at", { ascending: false });
 
   return (

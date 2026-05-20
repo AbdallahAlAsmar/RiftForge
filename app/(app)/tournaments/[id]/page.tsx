@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Crown, GitBranch, Sparkles, Swords, UsersRound, X } from "lucide-react";
+import { Crown, GitBranch, Sparkles, Swords, UsersRound, X, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateTeamForm } from "@/components/team/create-team-form";
 import { HoverLift, LiveBackdrop, Reveal } from "@/components/motion/reveal";
 import { QueueForm } from "@/components/tournament/queue-form";
+import { JoinTeamButton } from "@/components/tournament/join-team-button";
 import { joinTournamentWithTeam } from "@/lib/actions/tournaments";
 import {
   checkTeamEligibility,
@@ -32,13 +33,41 @@ export default async function TournamentDetailsPage({
         .eq("captain_id", user.id)
         .or(`tournament_id.is.null,tournament_id.eq.${id}`)
     : Promise.resolve({ data: [] as unknown[] });
-  const [{ data: tournament }, { data: teams }, { data: matches }, { data: userTeamsData }] =
-    await Promise.all([
-      supabase.from("tournaments").select("*").eq("id", id).single(),
-      supabase.from("teams").select("*, team_members(id)").eq("tournament_id", id),
-      supabase.from("matches").select("id").eq("tournament_id", id).limit(1),
-      userTeamsPromise
-    ]);
+
+  const userParticipantPromise = user
+    ? supabase
+        .from("tournament_participants")
+        .select("id, team_id")
+        .eq("tournament_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  const userQueueEntryPromise = user
+    ? supabase
+        .from("queue_entries")
+        .select("id, status")
+        .eq("tournament_id", id)
+        .eq("user_id", user.id)
+        .eq("status", "queued")
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  const [
+    { data: tournament },
+    { data: teams },
+    { data: matches },
+    { data: userTeamsData },
+    { data: userParticipant },
+    { data: userQueueEntry }
+  ] = await Promise.all([
+    supabase.from("tournaments").select("*").eq("id", id).single(),
+    supabase.from("teams").select("*, team_members(id)").eq("tournament_id", id),
+    supabase.from("matches").select("id").eq("tournament_id", id).limit(1),
+    userTeamsPromise,
+    userParticipantPromise,
+    userQueueEntryPromise
+  ]);
 
   if (!tournament) {
     return <div className="text-muted-foreground">Tournament not found.</div>;
@@ -51,11 +80,7 @@ export default async function TournamentDetailsPage({
   }));
   const hasEligibleTeam = teamChecks.some((check) => check.issues.length === 0);
   const canJoinWithTeam = userTeams.length > 0;
-
-  async function joinWithTeamAction(teamId: string) {
-    "use server";
-    await joinTournamentWithTeam(id, teamId);
-  }
+  const isAlreadyIn = !!userParticipant || !!userQueueEntry;
 
   const isOwner = user?.id === tournament.owner_id;
 
@@ -141,85 +166,105 @@ export default async function TournamentDetailsPage({
         <Reveal delay={0.08}>
           <Card className="interactive-surface bg-card/95">
           <CardHeader>
-            <CardTitle>Join tournament</CardTitle>
+            <CardTitle>{isAlreadyIn ? "Registration Active" : "Join tournament"}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {user && canJoinWithTeam ? (
-              <div className="grid gap-3">
-                <p className="text-sm font-medium">Join with your team</p>
-                {teamChecks.length ? (
-                  teamChecks.map(({ team, issues }) => {
-                    const eligible = issues.length === 0;
-                    return (
-                      <div
-                        key={team.id}
-                        className="interactive-surface space-y-3 rounded-md border bg-card/95 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
-                              {team.logo_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={team.logo_url}
-                                  alt=""
-                                  className="h-10 w-10 rounded-md object-cover"
-                                />
-                              ) : (
-                                <UsersRound className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{team.name}</p>
-                              <p className="text-xs text-muted-foreground">{team.average_tsr} avg TSR</p>
-                            </div>
-                          </div>
-                          <Badge
-                            className={
-                              eligible
-                                ? "border-primary/40 bg-primary/10 text-primary"
-                                : "border-destructive/40 bg-destructive/10 text-destructive"
-                            }
-                          >
-                            {eligible ? "Eligible" : "Not eligible"}
-                          </Badge>
-                        </div>
-                        {eligible ? (
-                          <form action={joinWithTeamAction.bind(null, team.id)}>
-                            <Button className="w-full">Join with this team</Button>
-                          </form>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {issues.map((issue, index) => (
-                              <p
-                                key={`${team.id}-issue-${index}`}
-                                className="flex items-start gap-2 text-xs text-muted-foreground"
-                              >
-                                <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                                <span>{formatTeamEligibilityIssue(issue)}</span>
-                              </p>
-                            ))}
-                            <p className="pt-1 text-xs text-muted-foreground">
-                              This team does not fit this tournament. Create a new eligible team.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    You do not have a captained team yet. Create one below to join as a team.
+            {isAlreadyIn ? (
+              <div className="rounded-md border border-primary/20 bg-[#0B0B0B]/80 p-4 text-center space-y-3">
+                <div className="flex justify-center">
+                  <CheckCircle2 className="h-7 w-7 text-primary animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">You're Registered!</h4>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                    {userParticipant
+                      ? "You are actively enrolled as a participant in this tournament."
+                      : "You are currently placed in the dynamic balancing queue for this tournament."}
                   </p>
-                )}
-                {!hasEligibleTeam && teamChecks.length ? (
-                  <p className="text-xs text-muted-foreground">
-                    No current team fits this tournament yet. You need a new team.
-                  </p>
-                ) : null}
+                </div>
               </div>
-            ) : null}
-            <QueueForm tournamentId={id} teamSize={tournament.team_size ?? 5} />
+            ) : (
+              <>
+                {user && canJoinWithTeam ? (
+                  <div className="grid gap-3">
+                    <p className="text-sm font-medium">Join with your team</p>
+                    {teamChecks.length ? (
+                      teamChecks.map(({ team, issues }) => {
+                        const eligible = issues.length === 0;
+                        return (
+                          <div
+                            key={team.id}
+                            className="interactive-surface space-y-3 rounded-md border bg-card/95 p-3"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
+                                  {team.logo_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={team.logo_url}
+                                      alt=""
+                                      className="h-10 w-10 rounded-md object-cover"
+                                    />
+                                  ) : (
+                                    <UsersRound className="h-4 w-4" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">{team.name}</p>
+                                  <p className="text-xs text-muted-foreground">{team.average_tsr} avg TSR</p>
+                                </div>
+                              </div>
+                              <Badge
+                                className={
+                                  eligible
+                                    ? "border-primary/40 bg-primary/10 text-primary"
+                                    : "border-destructive/40 bg-destructive/10 text-destructive"
+                                }
+                              >
+                                {eligible ? "Eligible" : "Not eligible"}
+                              </Badge>
+                            </div>
+                            {eligible ? (
+                              <JoinTeamButton
+                                tournamentId={id}
+                                teamId={team.id}
+                                teamName={team.name}
+                              />
+                            ) : (
+                              <div className="space-y-1.5">
+                                {issues.map((issue, index) => (
+                                  <p
+                                    key={`${team.id}-issue-${index}`}
+                                    className="flex items-start gap-2 text-xs text-muted-foreground"
+                                  >
+                                    <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                                    <span>{formatTeamEligibilityIssue(issue)}</span>
+                                  </p>
+                                ))}
+                                <p className="pt-1 text-xs text-muted-foreground">
+                                  This team does not fit this tournament. Create a new eligible team.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        You do not have a captained team yet. Create one below to join as a team.
+                      </p>
+                    )}
+                    {!hasEligibleTeam && teamChecks.length ? (
+                      <p className="text-xs text-muted-foreground">
+                        No current team fits this tournament yet. You need a new team.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <QueueForm tournamentId={id} teamSize={tournament.team_size ?? 5} />
+              </>
+            )}
           </CardContent>
           </Card>
         </Reveal>
