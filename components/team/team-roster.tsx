@@ -157,7 +157,9 @@ export function TeamRoster({ teamId, members, canManage }: { teamId: string; mem
                       src={profile?.avatar_url}
                       alt={displayName}
                       showBorder={profile?.show_rank_border}
-                      className="h-11 w-11"
+                      className="h-14 w-14 shrink-0 rounded-full"
+                      wingClassName="scale-[2.2] -translate-y-3"
+                      avatarShellClassName="inset-[18%]"
                     />
                     <div>
                       <div className="flex flex-wrap items-center gap-2">

@@ -51,6 +51,8 @@ type RankAvatarProps = {
   showBorder?: boolean;
   className?: string;
   imageClassName?: string;
+  wingClassName?: string;
+  avatarShellClassName?: string;
 };
 
 type RankLabelProps = {
@@ -66,7 +68,9 @@ export function RankAvatar({
   alt,
   showBorder = true,
   className,
-  imageClassName
+  imageClassName,
+  wingClassName,
+  avatarShellClassName
 }: RankAvatarProps) {
   const rankKey = normalizeRank(rank);
   const assets = rankKey ? rankVisuals[rankKey] : null;
@@ -74,41 +78,26 @@ export function RankAvatar({
 
   return (
     <div
-      className={cn(
-        "relative inline-flex aspect-square shrink-0 items-center justify-center",
-        className
-      )}
+      className={cn("relative inline-flex aspect-square shrink-0 items-center justify-center", className)}
     >
-      {/* Wing: centered on the container, scale controls how much it bleeds out */}
       {borderAsset ? (
         <Image
           src={borderAsset}
           alt=""
           aria-hidden
-          className="
-            pointer-events-none
-            absolute
-            inset-0
-            z-20
-            h-full
-            w-full
-            object-contain
-            scale-[1.40]
-          "
+          className={cn(
+            "pointer-events-none absolute inset-0 z-20 h-full w-full object-contain scale-[2.50] -translate-y-5",
+            wingClassName
+          )}
         />
       ) : null}
 
       {/* Avatar circle: inset must match where the wing's inner opening sits */}
       <div
-        className="
-          absolute
-          inset-[18%]
-          z-10
-          overflow-hidden
-          rounded-full
-          bg-secondary
-          shadow-[0_0_0_2px_rgba(0,0,0,0.35)]
-        "
+        className={cn(
+          "absolute inset-[18%] z-10 overflow-hidden rounded-full bg-secondary shadow-[0_0_0_2px_rgba(0,0,0,0.35)]",
+          avatarShellClassName
+        )}
       >
         {src ? (
           <img
